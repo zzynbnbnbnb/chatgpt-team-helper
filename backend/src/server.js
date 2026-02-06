@@ -18,6 +18,7 @@ import purchaseRoutes from './routes/purchase.js'
 import creditRoutes from './routes/credit.js'
 import adminRoutes from './routes/admin.js'
 import adminStatsRoutes from './routes/admin-stats.js'
+import announcementsRoutes from './routes/announcements.js'
 import { initDatabase } from './database/init.js'
 import { startWaitingRoomAutoBoardingScheduler } from './services/waiting-room-auto-boarding.js'
 import { startOpenAccountsOvercapacitySweeper } from './services/open-accounts-sweeper.js'
@@ -99,19 +100,19 @@ initDatabase()
     const dbPath = process.env.DATABASE_PATH || './db/database.sqlite'
     console.log(`Database initialized at: ${dbPath}`)
 
-	    startWaitingRoomAutoBoardingScheduler()
-	    startOpenAccountsOvercapacitySweeper()
-	    startOrderExpirationSweeper()
-	    startCreditOrderActionSweeper()
-	    await startTelegramBot().catch(error => {
-	      console.error('[Telegram Bot] start failed:', error)
-	    })
-	    startXianyuLoginRefreshScheduler()
-	    startXianyuWsDeliveryBot()
-	    startXhsAutoSyncScheduler()
+    startWaitingRoomAutoBoardingScheduler()
+    startOpenAccountsOvercapacitySweeper()
+    startOrderExpirationSweeper()
+    startCreditOrderActionSweeper()
+    await startTelegramBot().catch(error => {
+      console.error('[Telegram Bot] start failed:', error)
+    })
+    startXianyuLoginRefreshScheduler()
+    startXianyuWsDeliveryBot()
+    startXhsAutoSyncScheduler()
 
-	    startServer()
-	  })
+    startServer()
+  })
   .catch(error => {
     console.error('Failed to initialize database:', error)
     startServer()
@@ -135,6 +136,7 @@ app.use('/api/purchase', purchaseRoutes)
 app.use('/api/credit', creditRoutes)
 app.use('/api/admin/stats', adminStatsRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api', announcementsRoutes)
 // ZPAY 的异步回调示例为 /notify?...，这里提供无 /api 前缀的兼容入口
 app.all('/notify', purchaseRoutes)
 // Linux DO Credit 的异步回调会按 /credit/notify 访问，这里提供无 /api 前缀的兼容入口
@@ -143,4 +145,4 @@ app.use('/credit', creditRoutes)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
 })
- 
+
