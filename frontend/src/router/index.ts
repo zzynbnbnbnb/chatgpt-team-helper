@@ -42,6 +42,11 @@ const router = createRouter({
       path: '/',
       redirect: '/login',
     },
+    // 老系统账号按钮跳转入口 - 重定向到用户中心
+    {
+      path: '/user',
+      redirect: '/admin/user-info',
+    },
     {
       path: '/feature-disabled/:feature',
       name: 'feature-disabled',
