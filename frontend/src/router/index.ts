@@ -251,6 +251,33 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
+  // SSO: 从 URL 参数读取 token 并自动登录
+  const urlToken = to.query.token as string
+  if (urlToken && !authService.isAuthenticated()) {
+    // 存储 token
+    localStorage.setItem('token', urlToken)
+
+    // 尝试获取用户信息验证 token 有效性
+    try {
+      const userResponse = await fetch('/api/user/me', {
+        headers: { Authorization: `Bearer ${urlToken}` }
+      })
+      if (userResponse.ok) {
+        const userData = await userResponse.json()
+        localStorage.setItem('user', JSON.stringify(userData.user || userData))
+      }
+    } catch (e) {
+      // token 无效，清除
+      localStorage.removeItem('token')
+    }
+
+    // 清除 URL 中的 token 参数，避免泄露
+    const cleanQuery = { ...to.query }
+    delete cleanQuery.token
+    next({ ...to, query: cleanQuery, replace: true })
+    return
+  }
+
   const appConfigStore = useAppConfigStore(pinia)
   await appConfigStore.loadConfig()
 
