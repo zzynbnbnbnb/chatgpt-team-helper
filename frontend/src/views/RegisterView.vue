@@ -127,37 +127,45 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="relative min-h-screen w-full overflow-hidden bg-white flex items-center justify-center font-sans">
-    <!-- 液态流体背景 -->
+  <div class="min-h-screen w-full overflow-hidden flex items-center justify-center font-sans tech-bg">
+    
+    <!-- 动态粒子/流星背景效果 -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob"></div>
-      <div class="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-yellow-200 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob animation-delay-2000"></div>
-      <div class="absolute bottom-[-20%] left-[20%] w-[500px] h-[500px] bg-pink-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob animation-delay-4000"></div>
-      <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-300 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-blob animation-delay-6000"></div>
+      <!-- 渐变光晕 -->
+      <div class="absolute top-[10%] right-[20%] w-[400px] h-[400px] bg-amber-500/10 rounded-full filter blur-[100px]"></div>
+      <div class="absolute bottom-[10%] left-[20%] w-[400px] h-[400px] bg-cyan-500/10 rounded-full filter blur-[100px]"></div>
+      <!-- 扫描线效果 -->
+      <div class="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] pointer-events-none opacity-30"></div>
     </div>
 
+    <!-- 注册卡片 -->
     <div class="relative z-10 w-full max-w-[440px] mx-4">
-      <div class="relative overflow-hidden rounded-3xl bg-white/40 backdrop-blur-xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] p-8 md:p-10 transition-all duration-500 hover:shadow-[0_8px_40px_rgba(0,0,0,0.08)]">
+      <div class="glass-panel rounded-xl p-8 md:p-10 border-t-2 border-t-accent-gold transition-all duration-500 hover:shadow-[0_0_30px_rgba(251,191,36,0.15)]">
+        
+        <!-- 标题区域 -->
         <div class="mb-8 text-center">
-          <h1 class="text-3xl font-semibold text-gray-900 tracking-tight mb-2">创建账号</h1>
-          <p class="text-sm text-gray-500 font-medium">使用邮箱完成注册</p>
+          <h1 class="text-3xl font-bold text-white tracking-tight mb-2 font-cinzel">
+            <span class="text-accent-gold">创建</span>
+            <span class="text-accent-cyan">账号</span>
+          </h1>
+          <p class="text-sm text-slate-400 font-mono">使用邮箱完成注册 • Join Us</p>
         </div>
 
         <form @submit.prevent="handleRegister" class="space-y-5">
           <div class="space-y-2">
-            <Label for="email" class="text-xs font-medium text-gray-500 ml-1 uppercase tracking-wider">邮箱</Label>
+            <Label for="email" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">邮箱</Label>
             <Input
               id="email"
               v-model="email"
               type="email"
               placeholder="name@example.com"
               required
-              class="h-12 rounded-2xl bg-white/50 border-transparent hover:bg-white/80 focus:bg-white focus:border-blue-400/30 focus:ring-4 focus:ring-blue-100 transition-all duration-300 placeholder:text-gray-400 font-medium text-gray-700"
+              class="h-12 rounded-lg tech-input"
             />
           </div>
 
           <div class="space-y-2">
-            <Label for="code" class="text-xs font-medium text-gray-500 ml-1 uppercase tracking-wider">验证码</Label>
+            <Label for="code" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">验证码</Label>
             <div class="flex gap-3">
               <Input
                 id="code"
@@ -166,11 +174,11 @@ const handleRegister = async () => {
                 inputmode="numeric"
                 placeholder="6 位数字"
                 required
-                class="h-12 rounded-2xl bg-white/50 border-transparent hover:bg-white/80 focus:bg-white focus:border-blue-400/30 focus:ring-4 focus:ring-blue-100 transition-all duration-300 placeholder:text-gray-400 font-medium text-gray-700"
+                class="h-12 rounded-lg tech-input flex-1"
               />
               <Button
                 type="button"
-                class="h-12 rounded-2xl bg-gray-900 hover:bg-black text-white font-medium px-4"
+                class="h-12 rounded-lg bg-gradient-to-r from-accent-gold to-orange-600 hover:from-amber-400 hover:to-orange-500 text-gray-900 font-bold px-4 whitespace-nowrap shadow-lg shadow-amber-500/20"
                 :disabled="sendingCode || countdown > 0"
                 @click="handleSendCode"
               >
@@ -180,31 +188,31 @@ const handleRegister = async () => {
           </div>
 
           <div class="space-y-2">
-            <Label for="password" class="text-xs font-medium text-gray-500 ml-1 uppercase tracking-wider">密码</Label>
+            <Label for="password" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">密码</Label>
             <Input
               id="password"
               v-model="password"
               type="password"
               placeholder="至少 6 个字符"
               required
-              class="h-12 rounded-2xl bg-white/50 border-transparent hover:bg-white/80 focus:bg-white focus:border-blue-400/30 focus:ring-4 focus:ring-blue-100 transition-all duration-300 placeholder:text-gray-400 font-medium text-gray-700"
+              class="h-12 rounded-lg tech-input"
             />
           </div>
 
           <div class="space-y-2">
-            <Label for="confirmPassword" class="text-xs font-medium text-gray-500 ml-1 uppercase tracking-wider">确认密码</Label>
+            <Label for="confirmPassword" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">确认密码</Label>
             <Input
               id="confirmPassword"
               v-model="confirmPassword"
               type="password"
               placeholder="再次输入密码"
               required
-              class="h-12 rounded-2xl bg-white/50 border-transparent hover:bg-white/80 focus:bg-white focus:border-blue-400/30 focus:ring-4 focus:ring-blue-100 transition-all duration-300 placeholder:text-gray-400 font-medium text-gray-700"
+              class="h-12 rounded-lg tech-input"
             />
           </div>
 
           <div class="space-y-2">
-            <Label for="inviteCode" class="text-xs font-medium text-gray-500 ml-1 uppercase tracking-wider">
+            <Label for="inviteCode" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">
               邀请码{{ inviteLocked ? '（来自邀请链接）' : '（可选）' }}
             </Label>
             <Input
@@ -213,65 +221,99 @@ const handleRegister = async () => {
               type="text"
               :readonly="inviteLocked"
               placeholder="填写邀请码可关联邀请人"
-              class="h-12 rounded-2xl bg-white/50 border-transparent hover:bg-white/80 focus:bg-white focus:border-blue-400/30 focus:ring-4 focus:ring-blue-100 transition-all duration-300 placeholder:text-gray-400 font-medium text-gray-700"
+              class="h-12 rounded-lg tech-input"
             />
-            <div v-if="inviteLocked" class="text-xs text-gray-500">
+            <div v-if="inviteLocked" class="text-xs text-slate-500 ml-1">
               已从邀请链接自动填写，无法修改。
             </div>
           </div>
 
-          <div v-if="error" class="text-sm text-red-500 bg-red-50/80 border border-red-100 rounded-xl px-4 py-3 animate-in fade-in slide-in-from-bottom-2">
+          <div v-if="error" class="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
             {{ error }}
           </div>
 
-          <div v-if="success" class="text-sm text-green-600 bg-green-50/80 border border-green-100 rounded-xl px-4 py-3 animate-in fade-in slide-in-from-bottom-2">
+          <div v-if="success" class="text-sm text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
             {{ success }}
           </div>
 
           <Button
             type="submit"
-            class="w-full h-12 rounded-2xl bg-gray-900 hover:bg-black text-white font-medium text-[15px] shadow-lg shadow-gray-200/50 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 mt-2"
+            class="w-full h-12 rounded-lg bg-gradient-to-r from-accent-gold to-orange-600 hover:from-amber-400 hover:to-orange-500 text-gray-900 font-bold text-[15px] shadow-lg shadow-amber-500/20 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 mt-2"
             :disabled="loading"
           >
-            <span v-if="loading" class="mr-2 w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+            <span v-if="loading" class="mr-2 w-4 h-4 border-2 border-gray-900/20 border-t-gray-900 rounded-full animate-spin"></span>
             {{ loading ? '正在注册...' : '注 册' }}
           </Button>
 
-          <div class="text-center text-sm text-gray-500 font-medium">
+          <div class="text-center text-sm text-slate-400 font-medium pt-2">
             已有账号？
-            <router-link to="/login" class="text-gray-900 hover:underline">去登录</router-link>
+            <router-link to="/login" class="text-accent-cyan hover:text-cyan-300 hover:underline transition-colors">去登录</router-link>
           </div>
         </form>
       </div>
 
+      <!-- 底部版权 -->
       <div class="mt-8 text-center">
-        <p class="text-xs text-gray-400 font-medium">© 2026 Boarding System</p>
+        <p class="text-xs text-slate-600 font-mono">© 2026 Team Invite System</p>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-@keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
+.tech-bg {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
 }
 
-.animate-blob {
-  animation: blob 7s infinite;
+.glass-panel {
+  background: rgba(30, 41, 59, 0.8);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.animation-delay-2000 {
-  animation-delay: 2s;
+.tech-input {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  color: #f8fafc;
+  transition: all 0.3s ease;
 }
 
-.animation-delay-4000 {
-  animation-delay: 4s;
+.tech-input:hover {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(15, 23, 42, 0.8);
 }
 
-.animation-delay-6000 {
-  animation-delay: 6s;
+.tech-input:focus {
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.tech-input::placeholder {
+  color: #64748b;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.text-accent-cyan {
+  color: #22d3ee;
+}
+
+.text-accent-gold {
+  color: #fbbf24;
+}
+
+.from-accent-gold {
+  --tw-gradient-from: #fbbf24;
+}
+
+.to-orange-600 {
+  --tw-gradient-to: #ea580c;
+}
+
+.border-t-accent-gold {
+  border-top-color: #fbbf24;
 }
 </style>
