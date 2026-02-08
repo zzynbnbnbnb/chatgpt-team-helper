@@ -60,7 +60,7 @@ export const authService = {
     return response.data
   },
 
-  async register(payload: { email: string; code: string; password: string; inviteCode?: string }) {
+  async register(payload: { email: string; code?: string; password: string; inviteCode?: string }) {
     const response = await api.post('/auth/register', payload)
     if (response.data.token) {
       localStorage.setItem('token', response.data.token)
@@ -102,12 +102,12 @@ export const userService = {
     return response.data
   },
 
-  async getInviteCode(): Promise<{ inviteCode: string | null }> {
+  async getInviteCode(): Promise<{ invitecode?: string | null }> {
     const response = await api.get('/user/invite-code')
     return response.data
   },
 
-  async getInviteSummary(): Promise<{ inviteCode: string | null; points: number; invitedCount: number }> {
+  async getInviteSummary(): Promise<{ invitecode?: string | null; points: number; invitedCount: number }> {
     const response = await api.get('/user/invite-summary')
     return response.data
   },
@@ -117,7 +117,7 @@ export const userService = {
     return response.data
   },
 
-  async generateInviteCode(): Promise<{ inviteCode: string }> {
+  async generateInviteCode(): Promise<{ invitecode?: string }> {
     const response = await api.post('/user/invite-code')
     return response.data
   },
@@ -372,7 +372,7 @@ export type PurchaseOrderType = 'warranty' | 'no_warranty' | 'anti_ban'
 
 export interface RedemptionCode {
   id: number
-  code: string
+  code?: string
   isRedeemed: boolean
   redeemedAt?: string
   redeemedBy?: string
@@ -896,7 +896,7 @@ export interface RbacUser {
   username: string
   email: string
   createdAt: string
-  inviteCode: string | null
+  invitecode?: string | null
   invitedByUserId: number | null
   inviteEnabled: boolean
   roles: RbacUserRole[]
@@ -1178,14 +1178,14 @@ export interface AccountRecoveryRedeemLatestLog {
   status: string
   errorMessage: string | null
   recoveryMode: string | null
-  recoveryCode: string | null
+  recoverycode?: string | null
   recoveryAccountEmail: string | null
   createdAt: string | null
 }
 
 export interface AccountRecoveryBannedAccountRedeem {
   originalCodeId: number
-  code: string
+  code?: string
   channel: string
   redeemedAt: string | null
   userEmail: string
@@ -1212,7 +1212,7 @@ export interface AccountRecoveryLogRecord {
   originalAccountEmail: string | null
   recoveryMode: string | null
   recoveryCodeId: number | null
-  recoveryCode: string | null
+  recoverycode?: string | null
   recoveryAccountEmail: string | null
   status: string
   errorMessage: string | null
@@ -1231,7 +1231,7 @@ export interface AccountRecoveryRecoverResult {
   statusCode?: number
   recovery?: {
     recoveryCodeId: number
-    recoveryCode: string
+    recoverycode?: string
     recoveryAccountEmail: string
   }
 }
@@ -1442,7 +1442,7 @@ export const openaiOAuthService = {
     return response.data.data as OpenAIOAuthSession
   },
 
-  async exchangeCode(apiKey: string, payload: { code: string; sessionId: string }): Promise<OpenAIOAuthExchangeResult> {
+  async exchangeCode(apiKey: string, payload: { code?: string; sessionId: string }): Promise<OpenAIOAuthExchangeResult> {
     const response = await api.post('/openai-accounts/exchange-code', payload, {
       headers: {
         'x-api-key': apiKey,
@@ -1465,7 +1465,7 @@ export const linuxDoAuthService = {
     return response.data
   },
 
-  async exchangeCode(code: string, redirectUri: string): Promise<{ user: LinuxDoUser | null; sessionToken?: string | null }> {
+  async exchangeCode(code?: string, redirectUri: string): Promise<{ user: LinuxDoUser | null; sessionToken?: string | null }> {
     const response = await api.post('/linuxdo/exchange', {
       code,
       redirectUri,
@@ -1706,7 +1706,7 @@ export const redemptionCodeService = {
   },
 
   async redeem(
-    data: { email: string; code: string; channel?: RedemptionChannel; redeemerUid?: string; orderType?: PurchaseOrderType },
+    data: { email: string; code?: string; channel?: RedemptionChannel; redeemerUid?: string; orderType?: PurchaseOrderType },
     options?: { linuxDoSessionToken?: string }
   ): Promise<any> {
     // 为兑换接口创建一个不带认证的请求
@@ -1724,7 +1724,7 @@ export const redemptionCodeService = {
 
   async redeemAdmin(data: {
     email: string
-    code: string
+    code?: string
     channel?: RedemptionChannel
     redeemerUid?: string
     orderType?: PurchaseOrderType
