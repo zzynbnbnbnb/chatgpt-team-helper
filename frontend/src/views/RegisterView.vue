@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authService } from '@/services/api'
 import { Button } from '@/components/ui/button'
@@ -10,41 +10,13 @@ const router = useRouter()
 const route = useRoute()
 
 const email = ref('')
-const code = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const inviteCode = ref('')
 const inviteLocked = ref(false)
 
 const error = ref('')
-const success = ref('')
 const loading = ref(false)
-const sendingCode = ref(false)
-const countdown = ref(0)
-
-let countdownTimer: number | null = null
-
-const startCountdown = (seconds: number) => {
-  if (countdownTimer) {
-    window.clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-  countdown.value = seconds
-  countdownTimer = window.setInterval(() => {
-    countdown.value = Math.max(0, countdown.value - 1)
-    if (countdown.value <= 0 && countdownTimer) {
-      window.clearInterval(countdownTimer)
-      countdownTimer = null
-    }
-  }, 1000)
-}
-
-onUnmounted(() => {
-  if (countdownTimer) {
-    window.clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-})
 
 const applyInviteFromQuery = () => {
   const raw = route.query.invite ?? route.query.inviteCode ?? route.query.code
@@ -64,41 +36,14 @@ onMounted(() => {
 
 watch(() => route.query, () => applyInviteFromQuery(), { deep: true })
 
-const handleSendCode = async () => {
-  error.value = ''
-  success.value = ''
-
-  const trimmedEmail = email.value.trim().toLowerCase()
-  if (!trimmedEmail) {
-    error.value = '请输入邮箱'
-    return
-  }
-
-  sendingCode.value = true
-  try {
-    await authService.sendRegisterCode(trimmedEmail)
-    success.value = '验证码已发送，请检查邮箱'
-    startCountdown(60)
-  } catch (err: any) {
-    error.value = err.response?.data?.error || '发送验证码失败，请重试'
-  } finally {
-    sendingCode.value = false
-  }
-}
-
 const handleRegister = async () => {
   error.value = ''
-  success.value = ''
   loading.value = true
 
   try {
     const trimmedEmail = email.value.trim().toLowerCase()
     if (!trimmedEmail) {
       error.value = '请输入邮箱'
-      return
-    }
-    if (!code.value.trim()) {
-      error.value = '请输入验证码'
       return
     }
     if (!password.value || password.value.length < 6) {
@@ -112,7 +57,6 @@ const handleRegister = async () => {
 
     await authService.register({
       email: trimmedEmail,
-      code: code.value.trim(),
       password: password.value,
       ...(inviteCode.value.trim() ? { inviteCode: inviteCode.value.trim() } : {}),
     })
@@ -165,29 +109,6 @@ const handleRegister = async () => {
           </div>
 
           <div class="space-y-2">
-            <Label for="code" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">验证码</Label>
-            <div class="flex gap-3">
-              <Input
-                id="code"
-                v-model="code"
-                type="text"
-                inputmode="numeric"
-                placeholder="6 位数字"
-                required
-                class="h-12 rounded-lg tech-input flex-1"
-              />
-              <Button
-                type="button"
-                class="h-12 rounded-lg bg-gradient-to-r from-accent-gold to-orange-600 hover:from-amber-400 hover:to-orange-500 text-gray-900 font-bold px-4 whitespace-nowrap shadow-lg shadow-amber-500/20"
-                :disabled="sendingCode || countdown > 0"
-                @click="handleSendCode"
-              >
-                {{ countdown > 0 ? `${countdown}s` : (sendingCode ? '发送中...' : '发送验证码') }}
-              </Button>
-            </div>
-          </div>
-
-          <div class="space-y-2">
             <Label for="password" class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">密码</Label>
             <Input
               id="password"
@@ -230,10 +151,6 @@ const handleRegister = async () => {
 
           <div v-if="error" class="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
             {{ error }}
-          </div>
-
-          <div v-if="success" class="text-sm text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-3">
-            {{ success }}
           </div>
 
           <Button

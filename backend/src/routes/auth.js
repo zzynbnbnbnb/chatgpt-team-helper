@@ -150,16 +150,13 @@ router.post('/register/send-code', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email)
-    const code = String(req.body?.code || '').trim()
     const password = String(req.body?.password || '')
     const inviteCode = String(req.body?.inviteCode || '').trim() || null
 
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ error: '邮箱格式不正确' })
     }
-    if (!/^[0-9]{6}$/.test(code)) {
-      return res.status(400).json({ error: '验证码格式不正确' })
-    }
+    // 验证码功能已移除
     if (!password || password.length < 6) {
       return res.status(400).json({ error: '密码至少需要 6 个字符' })
     }
@@ -176,26 +173,7 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: '邮箱已注册' })
     }
 
-    const codeResult = db.exec(
-      `
-        SELECT id, code_hash
-        FROM email_verification_codes
-        WHERE email = ? AND purpose = 'register'
-          AND consumed_at IS NULL
-          AND expires_at >= DATETIME('now', 'localtime')
-        ORDER BY created_at DESC
-        LIMIT 1
-      `,
-      [email]
-    )
-    if (!codeResult[0]?.values?.length) {
-      return res.status(400).json({ error: '验证码无效或已过期' })
-    }
-
-    const [codeId, expectedHash] = codeResult[0].values[0]
-    if (sha256(code) !== expectedHash) {
-      return res.status(400).json({ error: '验证码无效或已过期' })
-    }
+    // 验证码验证已移除 - 直接注册
 
     let inviterUserId = null
     if (inviteCode) {
