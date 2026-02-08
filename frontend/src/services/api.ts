@@ -102,7 +102,7 @@ export const userService = {
     return response.data
   },
 
-  async getinviteCode(): Promise<{ inviteCode?: string | null }> {
+  async getInviteCode(): Promise<{ inviteCode?: string | null }> {
     const response = await api.get('/user/invite-code')
     return response.data
   },
@@ -117,7 +117,7 @@ export const userService = {
     return response.data
   },
 
-  async generateinviteCode(): Promise<{ inviteCode?: string }> {
+  async generateInviteCode(): Promise<{ inviteCode?: string }> {
     const response = await api.post('/user/invite-code')
     return response.data
   },

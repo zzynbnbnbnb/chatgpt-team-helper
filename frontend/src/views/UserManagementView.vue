@@ -922,7 +922,7 @@ onMounted(async () => {
                       </div>
                       <div class="flex items-center justify-between gap-6">
                         <span class="text-gray-500">邀请码</span>
-                        <span class="font-mono text-gray-900">{{ detailUser?.invitecode || '-' }}</span>
+                        <span class="font-mono text-gray-900">{{ detailUser?.inviteCode || '-' }}</span>
                       </div>
                       <div class="flex items-center justify-between gap-6">
                         <span class="text-gray-500">邀请人ID</span>
