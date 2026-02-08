@@ -542,7 +542,7 @@ const exportCodes = async () => {
         pageSize: exportPageSize,
         status: 'unused',
       })
-      const batch = (response.codes || []).map(item => item.code).filter(Boolean)
+      const batch = (response.codes || []).map(item => item.code || '').filter(Boolean)
       exported.push(...batch)
 
       const total = Number(response.pagination?.total || 0)
@@ -967,7 +967,7 @@ const handleInviteSubmit = async () => {
                   <div class="flex items-center gap-2">
                     <span 
                        class="font-mono text-sm font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200 transition-colors"
-                       @click="copyToClipboard(code.code)"
+                       @click="copyToClipboard(code.code || '')"
                     >
                        {{ code.code }}
                     </span>
@@ -1107,7 +1107,7 @@ const handleInviteSubmit = async () => {
                 <div class="flex items-center gap-2">
                    <span 
                       class="font-mono text-sm font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded cursor-pointer active:bg-gray-200 transition-colors"
-                      @click="copyToClipboard(code.code)"
+                      @click="copyToClipboard(code.code || '')"
                    >
                       {{ code.code }}
                    </span>

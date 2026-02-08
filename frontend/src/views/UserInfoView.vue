@@ -79,7 +79,7 @@ const loadInviteSummary = async () => {
   summaryLoading.value = true
   try {
     const result = await userService.getInviteSummary()
-    inviteCode.value = result.inviteCode
+    inviteCode.value = result.invitecode
     points.value = Number(result.points || 0)
     invitedCount.value = Number(result.invitedCount || 0)
   } catch (err: any) {

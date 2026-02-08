@@ -102,12 +102,12 @@ export const userService = {
     return response.data
   },
 
-  async getInviteCode(): Promise<{ invitecode?: string | null }> {
+  async getinviteCode(): Promise<{ inviteCode?: string | null }> {
     const response = await api.get('/user/invite-code')
     return response.data
   },
 
-  async getInviteSummary(): Promise<{ invitecode?: string | null; points: number; invitedCount: number }> {
+  async getInviteSummary(): Promise<{ inviteCode?: string | null; points: number; invitedCount: number }> {
     const response = await api.get('/user/invite-summary')
     return response.data
   },
@@ -117,7 +117,7 @@ export const userService = {
     return response.data
   },
 
-  async generateInviteCode(): Promise<{ invitecode?: string }> {
+  async generateinviteCode(): Promise<{ inviteCode?: string }> {
     const response = await api.post('/user/invite-code')
     return response.data
   },
@@ -896,7 +896,7 @@ export interface RbacUser {
   username: string
   email: string
   createdAt: string
-  invitecode?: string | null
+  inviteCode?: string | null
   invitedByUserId: number | null
   inviteEnabled: boolean
   roles: RbacUserRole[]
@@ -1465,7 +1465,7 @@ export const linuxDoAuthService = {
     return response.data
   },
 
-  async exchangeCode(code?: string, redirectUri: string): Promise<{ user: LinuxDoUser | null; sessionToken?: string | null }> {
+  async exchangeCode(code: string, redirectUri: string): Promise<{ user: LinuxDoUser | null; sessionToken?: string | null }> {
     const response = await api.post('/linuxdo/exchange', {
       code,
       redirectUri,

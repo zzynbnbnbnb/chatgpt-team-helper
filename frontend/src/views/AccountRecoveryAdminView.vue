@@ -678,7 +678,7 @@ const reloadAll = async () => {
               <tr v-for="item in logs" :key="item.id">
                 <td class="px-4 py-3 text-sm text-gray-600">#{{ item.id }}</td>
                 <td class="px-4 py-3 text-sm text-gray-900">{{ item.status }}</td>
-                <td class="px-4 py-3 text-sm text-gray-900 font-mono">{{ item.recoveryCode || '-' }}</td>
+                <td class="px-4 py-3 text-sm text-gray-900 font-mono">{{ item.recoverycode || '-' }}</td>
                 <td class="px-4 py-3 text-sm text-gray-900">{{ item.recoveryAccountEmail || '-' }}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">{{ formatShanghaiDate(item.createdAt, dateFormatOptions) }}</td>
                 <td class="px-4 py-3 text-sm text-gray-500 max-w-[260px] truncate">{{ item.errorMessage || '-' }}</td>
