@@ -188,10 +188,10 @@ router.post('/register', async (req, res) => {
     const rewardPoints = inviterUserId ? INVITE_REGISTER_REWARD_POINTS : 0
     db.run(
       `
-        INSERT INTO users (username, password, email, invited_by_user_id, invite_enabled, points, created_at)
-        VALUES (?, ?, ?, ?, 0, ?, DATETIME('now', 'localtime'))
+        INSERT INTO users (username, password, password_hash, email, invited_by_user_id, invite_enabled, points, created_at)
+        VALUES (?, ?, ?, ?, ?, 0, ?, DATETIME('now', 'localtime'))
       `,
-      [email, hashedPassword, email, inviterUserId, rewardPoints]
+      [email, hashedPassword, hashedPassword, email, inviterUserId, rewardPoints]
     )
 
     const userIdResult = db.exec('SELECT id FROM users WHERE email = ? LIMIT 1', [email])
