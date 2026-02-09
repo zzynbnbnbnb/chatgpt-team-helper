@@ -1,0 +1,5 @@
+[33m7c39a32[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m sync: 服务器代码同步到GitHub - SSO登录、验证码移除、API修复
+[33m1bffd72[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m fix: 注册时同时写password和password_hash兼容旧表
+[33m24a481a[m fix: 添加users表字段兼容迁移(password_hash->password)
+[33m4a854a5[m feat: 添加 /public-available API 供老系统调用（API Key 认证）
+[33m38fa914[m fix: 修复 UserInfoView 中 inviteCode 可能为 undefined 的类型错误
