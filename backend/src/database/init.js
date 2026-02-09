@@ -573,7 +573,7 @@ const ensureWaitingRoomTable = (database) => {
 
   const tableExists = database.exec('SELECT name FROM sqlite_master WHERE type="table" AND name="waiting_room_entries"')
   if (tableExists.length === 0) {
-      database.run(`
+    database.run(`
         CREATE TABLE IF NOT EXISTS waiting_room_entries (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           linuxdo_uid TEXT NOT NULL,
@@ -646,9 +646,9 @@ const ensureXhsTables = (database) => {
   let changed = false
 
   try {
-	    const ordersExists = database.exec('SELECT name FROM sqlite_master WHERE type="table" AND name="xhs_orders"')
-	    if (ordersExists.length === 0) {
-	      database.run(`
+    const ordersExists = database.exec('SELECT name FROM sqlite_master WHERE type="table" AND name="xhs_orders"')
+    if (ordersExists.length === 0) {
+      database.run(`
 	        CREATE TABLE IF NOT EXISTS xhs_orders (
 	          id INTEGER PRIMARY KEY AUTOINCREMENT,
 	          order_number TEXT NOT NULL UNIQUE,
@@ -678,18 +678,18 @@ const ensureXhsTables = (database) => {
           database.run(`ALTER TABLE xhs_orders ADD COLUMN status TEXT DEFAULT 'pending'`)
           changed = true
         }
-	        if (!columns.includes('order_time')) {
-	          database.run('ALTER TABLE xhs_orders ADD COLUMN order_time DATETIME')
-	          changed = true
-	        }
-	        if (!columns.includes('actual_paid')) {
-	          database.run('ALTER TABLE xhs_orders ADD COLUMN actual_paid INTEGER')
-	          changed = true
-	        }
-	        if (!columns.includes('order_status')) {
-	          database.run('ALTER TABLE xhs_orders ADD COLUMN order_status TEXT')
-	          changed = true
-	        }
+        if (!columns.includes('order_time')) {
+          database.run('ALTER TABLE xhs_orders ADD COLUMN order_time DATETIME')
+          changed = true
+        }
+        if (!columns.includes('actual_paid')) {
+          database.run('ALTER TABLE xhs_orders ADD COLUMN actual_paid INTEGER')
+          changed = true
+        }
+        if (!columns.includes('order_status')) {
+          database.run('ALTER TABLE xhs_orders ADD COLUMN order_status TEXT')
+          changed = true
+        }
         if (!columns.includes('nickname')) {
           database.run('ALTER TABLE xhs_orders ADD COLUMN nickname TEXT')
           changed = true
@@ -737,9 +737,9 @@ const ensureXhsTables = (database) => {
   }
 
   try {
-	    const configExists = database.exec('SELECT name FROM sqlite_master WHERE type="table" AND name="xhs_config"')
-	    if (configExists.length === 0) {
-	      database.run(`
+    const configExists = database.exec('SELECT name FROM sqlite_master WHERE type="table" AND name="xhs_config"')
+    if (configExists.length === 0) {
+      database.run(`
 	        CREATE TABLE IF NOT EXISTS xhs_config (
 	          id INTEGER PRIMARY KEY AUTOINCREMENT,
 	          cookies TEXT,
@@ -971,8 +971,8 @@ const ensureLinuxDoUsersTable = (database) => {
 
   try {
     const tableExists = database.exec('SELECT name FROM sqlite_master WHERE type="table" AND name="linuxdo_users"')
-	    if (tableExists.length === 0) {
-	      database.run(`
+    if (tableExists.length === 0) {
+      database.run(`
 	        CREATE TABLE IF NOT EXISTS linuxdo_users (
 	          uid TEXT PRIMARY KEY,
 	          username TEXT NOT NULL,
@@ -985,7 +985,7 @@ const ensureLinuxDoUsersTable = (database) => {
 	          updated_at DATETIME DEFAULT (DATETIME('now', 'localtime'))
 	        )
 	      `)
-	      changed = true
+      changed = true
     } else {
       const tableInfo = database.exec('PRAGMA table_info(linuxdo_users)')
       if (tableInfo.length > 0) {
@@ -1002,18 +1002,18 @@ const ensureLinuxDoUsersTable = (database) => {
           database.run('ALTER TABLE linuxdo_users ADD COLUMN email TEXT')
           changed = true
         }
-	        if (!columns.includes('current_open_account_id')) {
-	          database.run('ALTER TABLE linuxdo_users ADD COLUMN current_open_account_id INTEGER')
-	          changed = true
-	        }
-	        if (!columns.includes('current_open_account_email')) {
-	          database.run('ALTER TABLE linuxdo_users ADD COLUMN current_open_account_email TEXT')
-	          changed = true
-	        }
-	        if (!columns.includes('updated_at')) {
-	          database.run("ALTER TABLE linuxdo_users ADD COLUMN updated_at DATETIME DEFAULT (DATETIME('now', 'localtime'))")
-	          changed = true
-	        }
+        if (!columns.includes('current_open_account_id')) {
+          database.run('ALTER TABLE linuxdo_users ADD COLUMN current_open_account_id INTEGER')
+          changed = true
+        }
+        if (!columns.includes('current_open_account_email')) {
+          database.run('ALTER TABLE linuxdo_users ADD COLUMN current_open_account_email TEXT')
+          changed = true
+        }
+        if (!columns.includes('updated_at')) {
+          database.run("ALTER TABLE linuxdo_users ADD COLUMN updated_at DATETIME DEFAULT (DATETIME('now', 'localtime'))")
+          changed = true
+        }
         if (!columns.includes('created_at')) {
           database.run("ALTER TABLE linuxdo_users ADD COLUMN created_at DATETIME DEFAULT (DATETIME('now', 'localtime'))")
           changed = true
@@ -1515,9 +1515,52 @@ export async function initDatabase() {
 
         // 只执行必要的列添加检查（用于数据库升级）
         try {
+          // 检查 users 表的密码字段兼容性（password_hash 迁移到 password）
+          const usersTableInfo = database.exec('PRAGMA table_info(users)')
+          if (usersTableInfo.length > 0) {
+            const usersColumns = usersTableInfo[0].values.map(row => row[1])
+
+            // 如果有 password_hash 但没有 password，添加 password 列并复制数据
+            if (usersColumns.includes('password_hash') && !usersColumns.includes('password')) {
+              database.run('ALTER TABLE users ADD COLUMN password TEXT')
+              database.run('UPDATE users SET password = password_hash WHERE password IS NULL')
+              console.log('[DB] 已将 password_hash 迁移到 password 列')
+              saveDatabase()
+            }
+
+            // 确保有 invited_by_user_id 列
+            if (!usersColumns.includes('invited_by_user_id')) {
+              database.run('ALTER TABLE users ADD COLUMN invited_by_user_id INTEGER')
+              console.log('[DB] 已添加 invited_by_user_id 列到 users 表')
+              saveDatabase()
+            }
+
+            // 确保有 invite_enabled 列
+            if (!usersColumns.includes('invite_enabled')) {
+              database.run('ALTER TABLE users ADD COLUMN invite_enabled INTEGER DEFAULT 0')
+              console.log('[DB] 已添加 invite_enabled 列到 users 表')
+              saveDatabase()
+            }
+
+            // 确保有 points 列
+            if (!usersColumns.includes('points')) {
+              database.run('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0')
+              console.log('[DB] 已添加 points 列到 users 表')
+              saveDatabase()
+            }
+
+            // 确保有 invite_code 列
+            if (!usersColumns.includes('invite_code')) {
+              database.run('ALTER TABLE users ADD COLUMN invite_code TEXT')
+              console.log('[DB] 已添加 invite_code 列到 users 表')
+              saveDatabase()
+            }
+          }
+
           // 检查 gpt_accounts 表的列
           const tableInfo = database.exec('PRAGMA table_info(gpt_accounts)')
           if (tableInfo.length > 0) {
+
             const columns = tableInfo[0].values.map(row => row[1])
 
             if (!columns.includes('chatgpt_account_id')) {
@@ -1556,27 +1599,27 @@ export async function initDatabase() {
               saveDatabase()
             }
 
-	            if (!columns.includes('expire_at')) {
-	              database.run('ALTER TABLE gpt_accounts ADD COLUMN expire_at TEXT')
-	              console.log('已添加 expire_at 列到 gpt_accounts 表')
-	              saveDatabase()
-	            }
+            if (!columns.includes('expire_at')) {
+              database.run('ALTER TABLE gpt_accounts ADD COLUMN expire_at TEXT')
+              console.log('已添加 expire_at 列到 gpt_accounts 表')
+              saveDatabase()
+            }
 
-	            if (!columns.includes('is_banned')) {
-	              database.run('ALTER TABLE gpt_accounts ADD COLUMN is_banned INTEGER DEFAULT 0')
-	              console.log('已添加 is_banned 列到 gpt_accounts 表')
-	              saveDatabase()
-	            }
+            if (!columns.includes('is_banned')) {
+              database.run('ALTER TABLE gpt_accounts ADD COLUMN is_banned INTEGER DEFAULT 0')
+              console.log('已添加 is_banned 列到 gpt_accounts 表')
+              saveDatabase()
+            }
 
-	            if (!columns.includes('ban_processed')) {
-	              database.run('ALTER TABLE gpt_accounts ADD COLUMN ban_processed INTEGER DEFAULT 0')
-	              console.log('已添加 ban_processed 列到 gpt_accounts 表')
-	              saveDatabase()
-	            }
-	          }
+            if (!columns.includes('ban_processed')) {
+              database.run('ALTER TABLE gpt_accounts ADD COLUMN ban_processed INTEGER DEFAULT 0')
+              console.log('已添加 ban_processed 列到 gpt_accounts 表')
+              saveDatabase()
+            }
+          }
 
-	          // 检查 redemption_codes 表的列
-	          const redemptionTableInfo = database.exec('PRAGMA table_info(redemption_codes)')
+          // 检查 redemption_codes 表的列
+          const redemptionTableInfo = database.exec('PRAGMA table_info(redemption_codes)')
           if (redemptionTableInfo.length > 0) {
             const redemptionColumns = redemptionTableInfo[0].values.map(row => row[1])
 
@@ -1786,24 +1829,24 @@ export async function initDatabase() {
         console.log('已添加 is_demoted 列到 gpt_accounts 表')
       }
 
-	      if (!columns.includes('expire_at')) {
-	        database.run('ALTER TABLE gpt_accounts ADD COLUMN expire_at TEXT')
-	        console.log('已添加 expire_at 列到 gpt_accounts 表')
-	      }
+      if (!columns.includes('expire_at')) {
+        database.run('ALTER TABLE gpt_accounts ADD COLUMN expire_at TEXT')
+        console.log('已添加 expire_at 列到 gpt_accounts 表')
+      }
 
-	      if (!columns.includes('is_banned')) {
-	        database.run('ALTER TABLE gpt_accounts ADD COLUMN is_banned INTEGER DEFAULT 0')
-	        console.log('已添加 is_banned 列到 gpt_accounts 表')
-	      }
+      if (!columns.includes('is_banned')) {
+        database.run('ALTER TABLE gpt_accounts ADD COLUMN is_banned INTEGER DEFAULT 0')
+        console.log('已添加 is_banned 列到 gpt_accounts 表')
+      }
 
-	      if (!columns.includes('ban_processed')) {
-	        database.run('ALTER TABLE gpt_accounts ADD COLUMN ban_processed INTEGER DEFAULT 0')
-	        console.log('已添加 ban_processed 列到 gpt_accounts 表')
-	      }
-	    }
-	  } catch (err) {
-	    console.log('列检查/添加已跳过:', err.message)
-	  }
+      if (!columns.includes('ban_processed')) {
+        database.run('ALTER TABLE gpt_accounts ADD COLUMN ban_processed INTEGER DEFAULT 0')
+        console.log('已添加 ban_processed 列到 gpt_accounts 表')
+      }
+    }
+  } catch (err) {
+    console.log('列检查/添加已跳过:', err.message)
+  }
 
   // Check if admin user exists
   const adminUserResult = database.exec('SELECT id FROM users WHERE username = ? LIMIT 1', ['admin'])
