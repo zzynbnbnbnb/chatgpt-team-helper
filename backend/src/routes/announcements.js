@@ -120,12 +120,12 @@ const INTERNAL_API_KEY = process.env.OLD_SYSTEM_API_KEY
 // 管理员：获取老系统公告
 router.get('/admin/old-system-announcement', authenticateToken, async (req, res) => {
     try {
-        const response = await fetch(`${OLD_SYSTEM_URL}/api/internal/settings?key=announcement`, {
+        const response = await fetch(`${OLD_SYSTEM_URL}/api/settings?key=announcement`, {
             headers: { 'x-api-key': INTERNAL_API_KEY }
         })
         const data = await response.json()
         if (data.success) {
-            res.json({ success: true, data: { announcement: data.data?.value || '' } })
+            res.json({ success: true, data: { announcement: data.data?.announcement || '' } })
         } else {
             res.status(response.status).json({ success: false, message: data.message || '获取失败' })
         }
@@ -142,7 +142,7 @@ router.put('/admin/old-system-announcement', authenticateToken, async (req, res)
         if (announcement === undefined) {
             return res.status(400).json({ success: false, message: '公告内容不能为空' })
         }
-        const response = await fetch(`${OLD_SYSTEM_URL}/api/internal/settings`, {
+        const response = await fetch(`${OLD_SYSTEM_URL}/api/settings`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
