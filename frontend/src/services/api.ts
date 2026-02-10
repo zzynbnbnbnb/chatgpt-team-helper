@@ -1143,7 +1143,7 @@ export const adminService = {
   },
 
   async updateOldSystemAnnouncement(announcement: string): Promise<{ announcement: string }> {
-    const response = await api.put('/admin/old-system-announcement', { announcement })
+    const response = await api.post('/admin/old-system-announcement', { announcement })
     return response.data?.data || { announcement }
   },
 }

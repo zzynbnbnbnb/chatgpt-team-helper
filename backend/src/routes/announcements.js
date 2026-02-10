@@ -136,14 +136,14 @@ router.get('/admin/old-system-announcement', authenticateToken, async (req, res)
 })
 
 // 管理员：更新老系统公告
-router.put('/admin/old-system-announcement', authenticateToken, async (req, res) => {
+router.post('/admin/old-system-announcement', authenticateToken, async (req, res) => {
     try {
         const { announcement } = req.body || {}
         if (announcement === undefined) {
             return res.status(400).json({ success: false, message: '公告内容不能为空' })
         }
         const response = await fetch(`${OLD_SYSTEM_URL}/api/settings`, {
-            method: 'PUT',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': INTERNAL_API_KEY
