@@ -1135,6 +1135,17 @@ export const adminService = {
     const response = await api.delete(`/admin/rbac/users/${userId}`)
     return response.data
   },
+
+  // 老系统公告管理
+  async getOldSystemAnnouncement(): Promise<{ announcement: string }> {
+    const response = await api.get('/admin/old-system-announcement')
+    return response.data?.data || { announcement: '' }
+  },
+
+  async updateOldSystemAnnouncement(announcement: string): Promise<{ announcement: string }> {
+    const response = await api.put('/admin/old-system-announcement', { announcement })
+    return response.data?.data || { announcement }
+  },
 }
 
 export type AccountRecoveryRedeemState = 'pending' | 'failed' | 'done'
@@ -1537,15 +1548,15 @@ export const openAccountsService = {
   ): Promise<
     | { message: string; currentOpenAccountId: number; account?: { id: number; userCount?: number; inviteCount?: number } }
     | {
-        requiresCredit: true
-        message: string
-        creditOrder: {
-          orderNo: string
-          amount: string
-          payUrl?: string | null
-          payRequest?: { method?: 'POST' | 'GET'; url: string; fields?: Record<string, string> }
-        }
+      requiresCredit: true
+      message: string
+      creditOrder: {
+        orderNo: string
+        amount: string
+        payUrl?: string | null
+        payRequest?: { method?: 'POST' | 'GET'; url: string; fields?: Record<string, string> }
       }
+    }
   > {
     const response = await api.post(
       `/open-accounts/${accountId}/board`,

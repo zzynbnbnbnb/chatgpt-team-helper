@@ -109,4 +109,57 @@ router.get('/announcements', async (req, res) => {
     }
 })
 
+// ============ 老系统公告代理接口 ============
+// 通过内网直连老系统 Next.js（localhost:3000），读写老系统数据库中的 Settings 表
+
+const OLD_SYSTEM_URL = process.env.OLD_SYSTEM_URL || 'http://127.0.0.1:3000'
+const INTERNAL_API_KEY = process.env.OLD_SYSTEM_API_KEY
+    || process.env.INVITE_SERVICE_SECRET
+    || 'znQq35u1xhEZhcKp7D8vW4RcFgvyrhll'
+
+// 管理员：获取老系统公告
+router.get('/admin/old-system-announcement', authenticateToken, async (req, res) => {
+    try {
+        const response = await fetch(`${OLD_SYSTEM_URL}/api/internal/settings?key=announcement`, {
+            headers: { 'x-api-key': INTERNAL_API_KEY }
+        })
+        const data = await response.json()
+        if (data.success) {
+            res.json({ success: true, data: { announcement: data.data?.value || '' } })
+        } else {
+            res.status(response.status).json({ success: false, message: data.message || '获取失败' })
+        }
+    } catch (error) {
+        console.error('[OldSystem] 获取公告失败:', error?.message || error)
+        res.status(502).json({ success: false, message: '无法连接老系统服务' })
+    }
+})
+
+// 管理员：更新老系统公告
+router.put('/admin/old-system-announcement', authenticateToken, async (req, res) => {
+    try {
+        const { announcement } = req.body || {}
+        if (announcement === undefined) {
+            return res.status(400).json({ success: false, message: '公告内容不能为空' })
+        }
+        const response = await fetch(`${OLD_SYSTEM_URL}/api/internal/settings`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': INTERNAL_API_KEY
+            },
+            body: JSON.stringify({ key: 'announcement', value: String(announcement) })
+        })
+        const data = await response.json()
+        if (data.success) {
+            res.json({ success: true, message: '公告更新成功', data: { announcement: data.data?.value || announcement } })
+        } else {
+            res.status(response.status).json({ success: false, message: data.message || '更新失败' })
+        }
+    } catch (error) {
+        console.error('[OldSystem] 更新公告失败:', error?.message || error)
+        res.status(502).json({ success: false, message: '无法连接老系统服务' })
+    }
+})
+
 export default router

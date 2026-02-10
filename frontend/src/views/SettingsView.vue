@@ -185,6 +185,13 @@ const telegramSuccess = ref('')
 const telegramLoading = ref(false)
 const showTelegramBotToken = ref(false)
 
+// 老系统公告管理
+const oldAnnouncementText = ref('')
+const oldAnnouncementError = ref('')
+const oldAnnouncementSuccess = ref('')
+const oldAnnouncementLoading = ref(false)
+const oldAnnouncementSaving = ref(false)
+
 onMounted(async () => {
   if (!isSuperAdmin.value) return
   await loadApiKey()
@@ -198,6 +205,7 @@ onMounted(async () => {
     loadZpaySettings(),
     loadTurnstileSettings(),
     loadTelegramSettings(),
+    loadOldSystemAnnouncement(),
   ])
 })
 
@@ -830,6 +838,35 @@ const savePointsWithdrawSettings = async () => {
     pointsWithdrawError.value = err.response?.data?.error || '保存失败'
   } finally {
     pointsWithdrawLoading.value = false
+  }
+}
+
+const loadOldSystemAnnouncement = async () => {
+  oldAnnouncementError.value = ''
+  oldAnnouncementSuccess.value = ''
+  oldAnnouncementLoading.value = true
+  try {
+    const data = await adminService.getOldSystemAnnouncement()
+    oldAnnouncementText.value = data.announcement || ''
+  } catch (err: any) {
+    oldAnnouncementError.value = err.response?.data?.message || '获取公告失败（老系统可能未启动）'
+  } finally {
+    oldAnnouncementLoading.value = false
+  }
+}
+
+const saveOldSystemAnnouncement = async () => {
+  oldAnnouncementError.value = ''
+  oldAnnouncementSuccess.value = ''
+  oldAnnouncementSaving.value = true
+  try {
+    await adminService.updateOldSystemAnnouncement(oldAnnouncementText.value)
+    oldAnnouncementSuccess.value = '公告已更新，用户刷新页面后可见'
+    setTimeout(() => { oldAnnouncementSuccess.value = '' }, 5000)
+  } catch (err: any) {
+    oldAnnouncementError.value = err.response?.data?.message || '更新公告失败'
+  } finally {
+    oldAnnouncementSaving.value = false
   }
 }
 </script>
@@ -1778,6 +1815,72 @@ const savePointsWithdrawSettings = async () => {
               </Button>
             </div>
           </CardContent>
+      </Card>
+
+      <!-- 老系统公告管理 -->
+      <Card
+        v-if="isSuperAdmin"
+        class="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden flex flex-col lg:col-span-2"
+      >
+        <CardHeader class="border-b border-gray-50 bg-gradient-to-r from-amber-50/50 to-orange-50/50 px-6 py-5 sm:px-8 sm:py-6">
+          <CardTitle class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Sparkles class="w-5 h-5 text-amber-500" />
+            前台公告管理
+          </CardTitle>
+          <CardDescription class="text-gray-500">设置前端邀请页面顶部的公告横幅内容，支持 Emoji 和文本。</CardDescription>
+        </CardHeader>
+        <CardContent class="p-6 sm:p-8 space-y-4">
+          <!-- 错误/成功提示 -->
+          <div v-if="oldAnnouncementError" class="flex items-center gap-2 p-3 text-sm text-red-700 bg-red-50 rounded-xl border border-red-100">
+            <AlertCircle class="w-4 h-4 flex-shrink-0" />
+            {{ oldAnnouncementError }}
+          </div>
+          <div v-if="oldAnnouncementSuccess" class="flex items-center gap-2 p-3 text-sm text-green-700 bg-green-50 rounded-xl border border-green-100">
+            <CheckCircle2 class="w-4 h-4 flex-shrink-0" />
+            {{ oldAnnouncementSuccess }}
+          </div>
+
+          <!-- 公告输入框 -->
+          <div class="space-y-2">
+            <Label class="text-sm font-medium text-gray-700">公告内容</Label>
+            <textarea
+              v-model="oldAnnouncementText"
+              class="w-full min-h-[100px] px-4 py-3 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all resize-y"
+              placeholder="输入公告内容，例如：🔥 欢迎使用 Team 车位邀请系统！"
+              :disabled="oldAnnouncementLoading || oldAnnouncementSaving"
+            />
+          </div>
+
+          <!-- 预览 -->
+          <div v-if="oldAnnouncementText" class="space-y-2">
+            <Label class="text-sm font-medium text-gray-500">预览</Label>
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+              {{ oldAnnouncementText }}
+            </div>
+          </div>
+
+          <!-- 保存按钮 -->
+          <div class="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              class="h-11 px-6 rounded-xl border-gray-200"
+              :disabled="oldAnnouncementLoading || oldAnnouncementSaving"
+              @click="loadOldSystemAnnouncement"
+            >
+              <RefreshCw v-if="oldAnnouncementLoading" class="w-4 h-4 mr-2 animate-spin" />
+              刷新
+            </Button>
+            <Button
+              type="button"
+              class="h-11 px-6 rounded-xl bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/10"
+              :disabled="oldAnnouncementLoading || oldAnnouncementSaving"
+              @click="saveOldSystemAnnouncement"
+            >
+              {{ oldAnnouncementSaving ? '保存中...' : '保存公告' }}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
     </div>
   </div>
