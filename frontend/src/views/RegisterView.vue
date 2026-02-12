@@ -12,11 +12,15 @@ const route = useRoute()
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const verificationCode = ref('')
 const inviteCode = ref('')
 const inviteLocked = ref(false)
 
 const error = ref('')
 const loading = ref(false)
+const codeSending = ref(false)
+const codeCountdown = ref(0)
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const applyInviteFromQuery = () => {
   const raw = route.query.invite ?? route.query.inviteCode ?? route.query.code
@@ -36,6 +40,32 @@ onMounted(() => {
 
 watch(() => route.query, () => applyInviteFromQuery(), { deep: true })
 
+// 发送验证码
+const handleSendCode = async () => {
+  const trimmedEmail = email.value.trim().toLowerCase()
+  if (!trimmedEmail) {
+    error.value = '请先输入邮箱'
+    return
+  }
+  codeSending.value = true
+  error.value = ''
+  try {
+    await authService.sendRegisterCode(trimmedEmail)
+    codeCountdown.value = 60
+    countdownTimer = setInterval(() => {
+      codeCountdown.value--
+      if (codeCountdown.value <= 0) {
+        clearInterval(countdownTimer!)
+        countdownTimer = null
+      }
+    }, 1000)
+  } catch (err: any) {
+    error.value = err.response?.data?.error || '验证码发送失败'
+  } finally {
+    codeSending.value = false
+  }
+}
+
 const handleRegister = async () => {
   error.value = ''
   loading.value = true
@@ -54,10 +84,15 @@ const handleRegister = async () => {
       error.value = '两次输入的密码不一致'
       return
     }
+    if (!verificationCode.value || !/^[0-9]{6}$/.test(verificationCode.value.trim())) {
+      error.value = '请输入6位数字验证码'
+      return
+    }
 
     await authService.register({
       email: trimmedEmail,
       password: password.value,
+      code: verificationCode.value.trim(),
       ...(inviteCode.value.trim() ? { inviteCode: inviteCode.value.trim() } : {}),
     })
 
@@ -106,6 +141,29 @@ const handleRegister = async () => {
               required
               class="h-12 rounded-lg tech-input"
             />
+          </div>
+
+          <div class="space-y-2">
+            <Label class="text-xs font-medium text-slate-400 ml-1 uppercase tracking-wider">验证码</Label>
+            <div class="flex gap-3">
+              <Input
+                id="verificationCode"
+                v-model="verificationCode"
+                type="text"
+                maxlength="6"
+                placeholder="6位数字验证码"
+                required
+                class="h-12 rounded-lg tech-input flex-1"
+              />
+              <Button
+                type="button"
+                @click="handleSendCode"
+                :disabled="codeSending || codeCountdown > 0"
+                class="h-12 px-4 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium whitespace-nowrap transition-all duration-300"
+              >
+                {{ codeCountdown > 0 ? `${codeCountdown}s` : (codeSending ? '发送中...' : '发送验证码') }}
+              </Button>
+            </div>
           </div>
 
           <div class="space-y-2">
