@@ -1751,6 +1751,7 @@ export async function initDatabase() {
 	      is_open INTEGER DEFAULT 0,
 	      is_demoted INTEGER DEFAULT 0,
 	      is_banned INTEGER DEFAULT 0,
+	      max_members INTEGER DEFAULT 5,
 	      ban_processed INTEGER DEFAULT 0,
 	      created_at DATETIME DEFAULT (DATETIME('now', 'localtime')),
 	      updated_at DATETIME DEFAULT (DATETIME('now', 'localtime'))
@@ -1842,6 +1843,11 @@ export async function initDatabase() {
       if (!columns.includes('ban_processed')) {
         database.run('ALTER TABLE gpt_accounts ADD COLUMN ban_processed INTEGER DEFAULT 0')
         console.log('已添加 ban_processed 列到 gpt_accounts 表')
+      }
+
+      if (!columns.includes('max_members')) {
+        database.run('ALTER TABLE gpt_accounts ADD COLUMN max_members INTEGER DEFAULT 5')
+        console.log('已添加 max_members 列到 gpt_accounts 表')
       }
     }
   } catch (err) {

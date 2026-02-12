@@ -277,6 +277,7 @@ export interface GptAccount {
   chatgptAccountId?: string
   oaiDeviceId?: string
   expireAt?: string | null
+  maxMembers?: number
   createdAt: string
   updatedAt: string
 }
@@ -1402,6 +1403,11 @@ export const gptAccountService = {
 
   async ban(id: number): Promise<GptAccount> {
     const response = await api.patch(`/gpt-accounts/${id}/ban`)
+    return response.data
+  },
+
+  async setMaxMembers(id: number, maxMembers: number): Promise<{ success: boolean; maxMembers: number }> {
+    const response = await api.patch(`/gpt-accounts/${id}/max-members`, { maxMembers })
     return response.data
   },
 

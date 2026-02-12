@@ -237,7 +237,8 @@ router.get('/', async (req, res) => {
 	      SELECT id, email, token, refresh_token, user_count, invite_count, chatgpt_account_id, oai_device_id, expire_at, is_open,
 	             COALESCE(is_demoted, 0) AS is_demoted,
 	             COALESCE(is_banned, 0) AS is_banned,
-	             created_at, updated_at
+	             created_at, updated_at,
+	             COALESCE(max_members, 5) AS max_members
 	      FROM gpt_accounts
 	      ${whereClause}
 	      ORDER BY created_at DESC
@@ -258,7 +259,8 @@ router.get('/', async (req, res) => {
       isDemoted: Boolean(row[10]),
       isBanned: Boolean(row[11]),
       createdAt: row[12],
-      updatedAt: row[13]
+      updatedAt: row[13],
+      maxMembers: row[14] ?? 5
     }))
 
     res.json({
@@ -279,7 +281,8 @@ router.get('/:id', async (req, res) => {
 	      SELECT id, email, token, refresh_token, user_count, invite_count, chatgpt_account_id, oai_device_id, expire_at, is_open,
 	             COALESCE(is_demoted, 0) AS is_demoted,
 	             COALESCE(is_banned, 0) AS is_banned,
-	             created_at, updated_at
+	             created_at, updated_at,
+	             COALESCE(max_members, 5) AS max_members
 	      FROM gpt_accounts
 	      WHERE id = ?
 	    `, [req.params.id])
@@ -303,7 +306,8 @@ router.get('/:id', async (req, res) => {
       isDemoted: Boolean(row[10]),
       isBanned: Boolean(row[11]),
       createdAt: row[12],
-      updatedAt: row[13]
+      updatedAt: row[13],
+      maxMembers: row[14] ?? 5
     }
 
     res.json(account)
@@ -367,7 +371,8 @@ router.post('/', async (req, res) => {
 		      SELECT id, email, token, refresh_token, user_count, invite_count, chatgpt_account_id, oai_device_id, expire_at, is_open,
 		             COALESCE(is_demoted, 0) AS is_demoted,
 		             COALESCE(is_banned, 0) AS is_banned,
-		             created_at, updated_at
+		             created_at, updated_at,
+		             COALESCE(max_members, 5) AS max_members
 		      FROM gpt_accounts
 		      WHERE id = last_insert_rowid()
 		    `)
@@ -386,7 +391,8 @@ router.post('/', async (req, res) => {
       isDemoted: Boolean(row[10]),
       isBanned: Boolean(row[11]),
       createdAt: row[12],
-      updatedAt: row[13]
+      updatedAt: row[13],
+      maxMembers: row[14] ?? 5
     }
 
     // 生成随机兑换码的辅助函数
@@ -404,8 +410,8 @@ router.post('/', async (req, res) => {
     }
 
     // 自动生成兑换码并绑定到该账号
-    // Team 账号默认总容量 5，新建账号默认人数按 1 计算，所以默认生成 4 个兑换码
-    const totalCapacity = 5
+    // 使用账号的 max_members 作为总容量（默认5），新建账号默认人数按 1 计算
+    const totalCapacity = account.maxMembers || 5
     const currentUserCountForCodes = Math.max(1, Number(finalUserCount) || 1)
     const codesToGenerate = Math.max(0, totalCapacity - currentUserCountForCodes)
 
@@ -556,7 +562,8 @@ router.put('/:id', async (req, res) => {
 		      SELECT id, email, token, refresh_token, user_count, invite_count, chatgpt_account_id, oai_device_id, expire_at, is_open,
 		             COALESCE(is_demoted, 0) AS is_demoted,
 		             COALESCE(is_banned, 0) AS is_banned,
-		             created_at, updated_at
+		             created_at, updated_at,
+		             COALESCE(max_members, 5) AS max_members
 		      FROM gpt_accounts
 		      WHERE id = ?
 		    `, [req.params.id])
@@ -575,12 +582,42 @@ router.put('/:id', async (req, res) => {
       isDemoted: Boolean(row[10]),
       isBanned: Boolean(row[11]),
       createdAt: row[12],
-      updatedAt: row[13]
+      updatedAt: row[13],
+      maxMembers: row[14] ?? 5
     }
 
     res.json(account)
   } catch (error) {
     console.error('Update GPT account error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// 设置账号可拉人数上限
+router.patch('/:id/max-members', async (req, res) => {
+  try {
+    const { maxMembers } = req.body || {}
+    const value = Number(maxMembers)
+    if (!Number.isFinite(value) || value < 1 || value > 20) {
+      return res.status(400).json({ error: '可拉人数上限必须为 1~20 之间的整数' })
+    }
+
+    const db = await getDatabase()
+
+    const checkResult = db.exec('SELECT id FROM gpt_accounts WHERE id = ?', [req.params.id])
+    if (checkResult.length === 0 || checkResult[0].values.length === 0) {
+      return res.status(404).json({ error: 'Account not found' })
+    }
+
+    db.run(
+      `UPDATE gpt_accounts SET max_members = ?, updated_at = DATETIME('now', 'localtime') WHERE id = ?`,
+      [Math.floor(value), req.params.id]
+    )
+    saveDatabase()
+
+    res.json({ success: true, maxMembers: Math.floor(value) })
+  } catch (error) {
+    console.error('Update max members error:', error)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

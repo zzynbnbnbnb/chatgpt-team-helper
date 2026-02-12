@@ -92,6 +92,10 @@ const inviting = ref(false)
 const togglingOpenAccountId = ref<number | null>(null)
 const banningAccountId = ref<number | null>(null)
 
+// 编辑可拉人数上限状态
+const editingMaxMembersId = ref<number | null>(null)
+const editingMaxMembersValue = ref(5)
+
 // Tab 和 邀请列表状态
 const activeTab = ref<'members' | 'invites'>('members')
 const invitesList = ref<ChatgptAccountInviteItem[]>([])
@@ -673,6 +677,46 @@ const handleBanAccount = async (account: GptAccount) => {
   }
 }
 
+// 编辑可拉人数上限
+const startEditMaxMembers = (account: GptAccount) => {
+  editingMaxMembersId.value = account.id
+  editingMaxMembersValue.value = account.maxMembers ?? 5
+  nextTick(() => {
+    const input = document.querySelector('input[type="number"][min="1"][max="20"]') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
+  })
+}
+
+const saveMaxMembers = async (account: GptAccount) => {
+  const newValue = Math.floor(Number(editingMaxMembersValue.value))
+  const oldValue = account.maxMembers ?? 5
+
+  // 如果值没变或无效，直接关闭编辑
+  if (newValue === oldValue || !Number.isFinite(newValue) || newValue < 1 || newValue > 20) {
+    editingMaxMembersId.value = null
+    return
+  }
+
+  try {
+    await gptAccountService.setMaxMembers(account.id, newValue)
+    // 更新本地状态
+    const index = accounts.value.findIndex(a => a.id === account.id)
+    if (index !== -1) {
+      const current = accounts.value[index]
+      if (current) {
+        accounts.value[index] = { ...current, maxMembers: newValue }
+        accounts.value = [...accounts.value]
+      }
+    }
+    showSuccessToast(`上限已更新为 ${newValue} 人`)
+  } catch (err: any) {
+    showErrorToast(err.response?.data?.error || '修改上限失败')
+  } finally {
+    editingMaxMembersId.value = null
+  }
+}
+
 // 同步用户数量
 const applySyncResultToState = (result: SyncUserCountResponse) => {
   syncResult.value = result
@@ -992,6 +1036,7 @@ const handleInviteSubmit = async () => {
                 <th class="px-6 py-5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">邮箱</th>
                 <th class="px-6 py-5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">已加入</th>
                 <th class="px-6 py-5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">待加入</th>
+                <th class="px-6 py-5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">上限</th>
                 <th class="px-6 py-5 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider">降级</th>
                 <th class="px-6 py-5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">过期时间</th>
                 <th class="px-6 py-5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">创建时间</th>
@@ -1027,6 +1072,28 @@ const handleInviteSubmit = async () => {
                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-600 border border-purple-100">
                     {{ account.inviteCount ?? 0 }} 人
                   </span>
+                </td>
+                <td class="px-6 py-5 text-center">
+                  <template v-if="editingMaxMembersId === account.id">
+                    <input
+                      type="number"
+                      min="1" max="20"
+                      v-model.number="editingMaxMembersValue"
+                      class="w-16 px-2 py-1 text-xs text-center border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      @keydown.enter="saveMaxMembers(account)"
+                      @blur="saveMaxMembers(account)"
+                      ref="maxMembersInput"
+                    />
+                  </template>
+                  <template v-else>
+                    <span
+                      class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-pointer hover:bg-emerald-100 transition-colors"
+                      @click="startEditMaxMembers(account)"
+                      title="点击修改上限"
+                    >
+                      {{ account.maxMembers ?? 5 }} 人
+                    </span>
+                  </template>
                 </td>
                 <td class="px-6 py-5 text-center">
                   <span
