@@ -206,6 +206,8 @@ onMounted(async () => {
     loadTurnstileSettings(),
     loadTelegramSettings(),
     loadOldSystemAnnouncement(),
+    loadPurchaseProductSettings(),
+    loadPointsRulesSettings(),
   ])
 })
 
@@ -869,6 +871,104 @@ const saveOldSystemAnnouncement = async () => {
     oldAnnouncementSaving.value = false
   }
 }
+
+// =============== 商品管理 ===============
+const productWarrantyName = ref('通用渠道激活码')
+const productWarrantyPrice = ref('1.00')
+const productWarrantyDays = ref('30')
+const productNoWarrantyName = ref('')
+const productNoWarrantyPrice = ref('5.00')
+const productNoWarrantyDays = ref('30')
+const productAntiBanName = ref('')
+const productAntiBanPrice = ref('10.00')
+const productAntiBanDays = ref('30')
+const productError = ref('')
+const productSuccess = ref('')
+const productLoading = ref(false)
+
+const loadPurchaseProductSettings = async () => {
+  productError.value = ''
+  productSuccess.value = ''
+  try {
+    const r = await adminService.getPurchaseProductSettings()
+    productWarrantyName.value = r.warranty?.productName || '通用渠道激活码'
+    productWarrantyPrice.value = r.warranty?.price || '1.00'
+    productWarrantyDays.value = String(r.warranty?.serviceDays || 30)
+    productNoWarrantyName.value = r.noWarranty?.productName || ''
+    productNoWarrantyPrice.value = r.noWarranty?.price || '5.00'
+    productNoWarrantyDays.value = String(r.noWarranty?.serviceDays || 30)
+    productAntiBanName.value = r.antiBan?.productName || ''
+    productAntiBanPrice.value = r.antiBan?.price || '10.00'
+    productAntiBanDays.value = String(r.antiBan?.serviceDays || 30)
+  } catch (err: any) {
+    productError.value = err.response?.data?.error || '加载商品配置失败'
+  }
+}
+
+const savePurchaseProductSettings = async () => {
+  productError.value = ''
+  productSuccess.value = ''
+  productLoading.value = true
+  try {
+    await adminService.updatePurchaseProductSettings({
+      warranty: { productName: productWarrantyName.value.trim(), price: productWarrantyPrice.value.trim(), serviceDays: Number(productWarrantyDays.value) || 30 },
+      noWarranty: { productName: productNoWarrantyName.value.trim(), price: productNoWarrantyPrice.value.trim(), serviceDays: Number(productNoWarrantyDays.value) || 30 },
+      antiBan: { productName: productAntiBanName.value.trim(), price: productAntiBanPrice.value.trim(), serviceDays: Number(productAntiBanDays.value) || 30 },
+    })
+    productSuccess.value = '已保存'
+    setTimeout(() => (productSuccess.value = ''), 3000)
+  } catch (err: any) {
+    productError.value = err.response?.data?.error || '保存失败'
+  } finally {
+    productLoading.value = false
+  }
+}
+
+// =============== 积分规则 ===============
+const prInviteRegisterReward = ref('1')
+const prInviteUnlockCost = ref('1')
+const prTeamSeatCost = ref('15')
+const prInviteOrderReward = ref('5')
+const prPurchaseOrderReward = ref('3')
+const prError = ref('')
+const prSuccess = ref('')
+const prLoading = ref(false)
+
+const loadPointsRulesSettings = async () => {
+  prError.value = ''
+  prSuccess.value = ''
+  try {
+    const r = await adminService.getPointsRulesSettings()
+    prInviteRegisterReward.value = String(r.inviteRegisterReward ?? 1)
+    prInviteUnlockCost.value = String(r.inviteUnlockCost ?? 1)
+    prTeamSeatCost.value = String(r.teamSeatCost ?? 15)
+    prInviteOrderReward.value = String(r.inviteOrderReward ?? 5)
+    prPurchaseOrderReward.value = String(r.purchaseOrderReward ?? 3)
+  } catch (err: any) {
+    prError.value = err.response?.data?.error || '加载积分规则失败'
+  }
+}
+
+const savePointsRulesSettings = async () => {
+  prError.value = ''
+  prSuccess.value = ''
+  prLoading.value = true
+  try {
+    await adminService.updatePointsRulesSettings({
+      inviteRegisterReward: Number(prInviteRegisterReward.value) || 0,
+      inviteUnlockCost: Math.max(1, Number(prInviteUnlockCost.value) || 1),
+      teamSeatCost: Math.max(1, Number(prTeamSeatCost.value) || 1),
+      inviteOrderReward: Number(prInviteOrderReward.value) || 0,
+      purchaseOrderReward: Number(prPurchaseOrderReward.value) || 0,
+    })
+    prSuccess.value = '已保存（需重启后端生效）'
+    setTimeout(() => (prSuccess.value = ''), 5000)
+  } catch (err: any) {
+    prError.value = err.response?.data?.error || '保存失败'
+  } finally {
+    prLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -1157,6 +1257,141 @@ const saveOldSystemAnnouncement = async () => {
               {{ featureFlagsLoading ? '保存中...' : '保存功能开关' }}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <!-- 商品管理 -->
+      <Card v-if="isSuperAdmin" class="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden flex flex-col lg:col-span-2">
+        <CardHeader class="border-b border-gray-50 bg-gray-50/30 px-6 py-5 sm:px-8 sm:py-6">
+          <CardTitle class="text-xl font-bold text-gray-900">商品管理</CardTitle>
+          <CardDescription class="text-gray-500">修改商品名称、价格和服务天数（保存后实时生效）。</CardDescription>
+        </CardHeader>
+        <CardContent class="p-6 sm:p-8 space-y-6 flex-1">
+          <!-- 质保商品 -->
+          <div class="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3">
+            <p class="font-semibold text-blue-800 text-sm">质保商品</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">商品名称</Label>
+                <Input v-model="productWarrantyName" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">价格（元）</Label>
+                <Input v-model="productWarrantyPrice" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">服务天数</Label>
+                <Input v-model="productWarrantyDays" type="number" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 无质保商品 -->
+          <div class="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-3">
+            <p class="font-semibold text-orange-800 text-sm">无质保商品</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">商品名称</Label>
+                <Input v-model="productNoWarrantyName" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">价格（元）</Label>
+                <Input v-model="productNoWarrantyPrice" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">服务天数</Label>
+                <Input v-model="productNoWarrantyDays" type="number" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 防封禁商品 -->
+          <div class="p-4 bg-green-50/50 rounded-2xl border border-green-100 space-y-3">
+            <p class="font-semibold text-green-800 text-sm">防封禁商品</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">商品名称</Label>
+                <Input v-model="productAntiBanName" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">价格（元）</Label>
+                <Input v-model="productAntiBanPrice" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+              <div class="space-y-1">
+                <Label class="text-xs text-gray-500">服务天数</Label>
+                <Input v-model="productAntiBanDays" type="number" class="h-10 bg-white border-gray-200 rounded-xl text-sm" />
+              </div>
+            </div>
+          </div>
+
+          <div v-if="productError" class="rounded-xl bg-red-50 p-4 text-red-600 border border-red-100 text-sm font-medium">
+            {{ productError }}
+          </div>
+          <div v-if="productSuccess" class="rounded-xl bg-green-50 p-4 text-green-600 border border-green-100 text-sm font-medium">
+            {{ productSuccess }}
+          </div>
+
+          <Button
+            type="button"
+            :disabled="productLoading"
+            class="w-full h-11 rounded-xl bg-black hover:bg-gray-800 text-white shadow-lg shadow-black/5"
+            @click="savePurchaseProductSettings"
+          >
+            {{ productLoading ? '保存中...' : '保存商品配置' }}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <!-- 积分规则设置 -->
+      <Card v-if="isSuperAdmin" class="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden flex flex-col lg:col-span-2">
+        <CardHeader class="border-b border-gray-50 bg-gray-50/30 px-6 py-5 sm:px-8 sm:py-6">
+          <CardTitle class="text-xl font-bold text-gray-900">积分规则</CardTitle>
+          <CardDescription class="text-gray-500">配置邀请奖励和兑换成本（保存后需重启后端生效）。</CardDescription>
+        </CardHeader>
+        <CardContent class="p-6 sm:p-8 space-y-5 flex-1">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">邀请注册奖励（积分）</Label>
+              <Input v-model="prInviteRegisterReward" type="number" min="0" class="h-11 bg-gray-50 border-gray-200 rounded-xl text-sm" />
+              <p class="text-xs text-gray-400">被邀请者注册成功后，邀请者获得的积分</p>
+            </div>
+            <div class="space-y-2">
+              <Label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">兑换邀请权限（积分）</Label>
+              <Input v-model="prInviteUnlockCost" type="number" min="1" class="h-11 bg-gray-50 border-gray-200 rounded-xl text-sm" />
+              <p class="text-xs text-gray-400">用积分解锁邀请功能的成本</p>
+            </div>
+            <div class="space-y-2">
+              <Label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">兑换车位（积分）</Label>
+              <Input v-model="prTeamSeatCost" type="number" min="1" class="h-11 bg-gray-50 border-gray-200 rounded-xl text-sm" />
+              <p class="text-xs text-gray-400">用积分兑换Team车位的成本</p>
+            </div>
+            <div class="space-y-2">
+              <Label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">邀请购买奖励（积分）</Label>
+              <Input v-model="prInviteOrderReward" type="number" min="0" class="h-11 bg-gray-50 border-gray-200 rounded-xl text-sm" />
+              <p class="text-xs text-gray-400">被邀请者购买后奖励邀请者的积分</p>
+            </div>
+            <div class="space-y-2">
+              <Label class="text-xs font-semibold text-gray-500 uppercase tracking-wider">购买自奖（积分）</Label>
+              <Input v-model="prPurchaseOrderReward" type="number" min="0" class="h-11 bg-gray-50 border-gray-200 rounded-xl text-sm" />
+              <p class="text-xs text-gray-400">买家购买后获得的积分</p>
+            </div>
+          </div>
+
+          <div v-if="prError" class="rounded-xl bg-red-50 p-4 text-red-600 border border-red-100 text-sm font-medium">
+            {{ prError }}
+          </div>
+          <div v-if="prSuccess" class="rounded-xl bg-green-50 p-4 text-green-600 border border-green-100 text-sm font-medium">
+            {{ prSuccess }}
+          </div>
+
+          <Button
+            type="button"
+            :disabled="prLoading"
+            class="w-full h-11 rounded-xl bg-black hover:bg-gray-800 text-white shadow-lg shadow-black/5"
+            @click="savePointsRulesSettings"
+          >
+            {{ prLoading ? '保存中...' : '保存积分规则' }}
+          </Button>
         </CardContent>
       </Card>
 

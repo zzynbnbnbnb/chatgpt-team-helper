@@ -860,6 +860,20 @@ export interface AdminTelegramSettingsResponse {
   }
 }
 
+export interface AdminPurchaseProductSettingsResponse {
+  warranty: { productName: string; price: string; serviceDays: number }
+  noWarranty: { productName: string; price: string; serviceDays: number }
+  antiBan: { productName: string; price: string; serviceDays: number }
+}
+
+export interface AdminPointsRulesSettingsResponse {
+  inviteRegisterReward: number
+  inviteUnlockCost: number
+  teamSeatCost: number
+  inviteOrderReward: number
+  purchaseOrderReward: number
+}
+
 export interface RbacMenu {
   id: number
   menuKey: string
@@ -1058,6 +1072,26 @@ export const adminService = {
     }
   }): Promise<AdminTelegramSettingsResponse> {
     const response = await api.put('/admin/telegram-settings', payload)
+    return response.data
+  },
+
+  async getPurchaseProductSettings(): Promise<AdminPurchaseProductSettingsResponse> {
+    const response = await api.get('/admin/purchase-product-settings')
+    return response.data
+  },
+
+  async updatePurchaseProductSettings(payload: Partial<AdminPurchaseProductSettingsResponse>): Promise<{ message: string }> {
+    const response = await api.put('/admin/purchase-product-settings', payload)
+    return response.data
+  },
+
+  async getPointsRulesSettings(): Promise<AdminPointsRulesSettingsResponse> {
+    const response = await api.get('/admin/points-rules-settings')
+    return response.data
+  },
+
+  async updatePointsRulesSettings(payload: Partial<AdminPointsRulesSettingsResponse>): Promise<{ message: string }> {
+    const response = await api.put('/admin/points-rules-settings', payload)
     return response.data
   },
 

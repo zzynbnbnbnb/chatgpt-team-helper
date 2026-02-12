@@ -139,22 +139,42 @@ const normalizeOrderType = (value) => {
   return ORDER_TYPE_SET.has(normalized) ? normalized : ORDER_TYPE_WARRANTY
 }
 
-const getPurchasePlans = () => {
-  const productName = String(process.env.PURCHASE_PRODUCT_NAME || '通用渠道激活码').trim() || '通用渠道激活码'
-  const amount = formatMoney(process.env.PURCHASE_PRICE ?? '1.00') || '1.00'
-  const serviceDays = Math.max(1, toInt(process.env.PURCHASE_SERVICE_DAYS, 30))
+const getPurchasePlans = (db) => {
+  // 从数据库读取配置，如果有db的话
+  const configMap = {}
+  if (db) {
+    try {
+      const keys = [
+        'purchase_product_name', 'purchase_price', 'purchase_service_days',
+        'purchase_no_warranty_product_name', 'purchase_no_warranty_price', 'purchase_no_warranty_service_days',
+        'purchase_anti_ban_product_name', 'purchase_anti_ban_price', 'purchase_anti_ban_service_days',
+      ]
+      const placeholders = keys.map(() => '?').join(', ')
+      const result = db.exec(
+        `SELECT config_key, config_value FROM system_config WHERE config_key IN (${placeholders})`,
+        keys
+      )
+      for (const row of result[0]?.values || []) {
+        if (row[1]) configMap[row[0]] = row[1]
+      }
+    } catch { /* 数据库读取失败则回退到环境变量 */ }
+  }
+
+  const productName = String(configMap['purchase_product_name'] || process.env.PURCHASE_PRODUCT_NAME || '通用渠道激活码').trim() || '通用渠道激活码'
+  const amount = formatMoney(configMap['purchase_price'] || (process.env.PURCHASE_PRICE ?? '1.00')) || '1.00'
+  const serviceDays = Math.max(1, toInt(configMap['purchase_service_days'] || process.env.PURCHASE_SERVICE_DAYS, 30))
   const expireMinutes = Math.max(5, toInt(process.env.PURCHASE_ORDER_EXPIRE_MINUTES, 15))
 
-  const noWarrantyAmount = formatMoney(process.env.PURCHASE_NO_WARRANTY_PRICE ?? '5.00') || '5.00'
-  const noWarrantyServiceDays = Math.max(1, toInt(process.env.PURCHASE_NO_WARRANTY_SERVICE_DAYS, serviceDays))
+  const noWarrantyAmount = formatMoney(configMap['purchase_no_warranty_price'] || (process.env.PURCHASE_NO_WARRANTY_PRICE ?? '5.00')) || '5.00'
+  const noWarrantyServiceDays = Math.max(1, toInt(configMap['purchase_no_warranty_service_days'] || process.env.PURCHASE_NO_WARRANTY_SERVICE_DAYS, serviceDays))
   const noWarrantyProductName = String(
-    process.env.PURCHASE_NO_WARRANTY_PRODUCT_NAME || `${productName}（无质保）`
+    configMap['purchase_no_warranty_product_name'] || process.env.PURCHASE_NO_WARRANTY_PRODUCT_NAME || `${productName}（无质保）`
   ).trim() || `${productName}（无质保）`
 
-  const antiBanAmount = formatMoney(process.env.PURCHASE_ANTI_BAN_PRICE ?? '10.00') || '10.00'
-  const antiBanServiceDays = Math.max(1, toInt(process.env.PURCHASE_ANTI_BAN_SERVICE_DAYS, serviceDays))
+  const antiBanAmount = formatMoney(configMap['purchase_anti_ban_price'] || (process.env.PURCHASE_ANTI_BAN_PRICE ?? '10.00')) || '10.00'
+  const antiBanServiceDays = Math.max(1, toInt(configMap['purchase_anti_ban_service_days'] || process.env.PURCHASE_ANTI_BAN_SERVICE_DAYS, serviceDays))
   const antiBanProductName = String(
-    process.env.PURCHASE_ANTI_BAN_PRODUCT_NAME || `${productName}(防封禁)`
+    configMap['purchase_anti_ban_product_name'] || process.env.PURCHASE_ANTI_BAN_PRODUCT_NAME || `${productName}(防封禁)`
   ).trim() || `${productName}(防封禁)`
 
   return {
@@ -182,9 +202,9 @@ const getPurchasePlans = () => {
   }
 }
 
-const getPurchasePlan = (orderType) => {
+const getPurchasePlan = (orderType, db) => {
   const normalized = normalizeOrderType(orderType)
-  const { plans } = getPurchasePlans()
+  const { plans } = getPurchasePlans(db)
   if (normalized === ORDER_TYPE_NO_WARRANTY) return plans.noWarranty
   if (normalized === ORDER_TYPE_ANTI_BAN) return plans.antiBan
   return plans.warranty
@@ -534,27 +554,27 @@ const fetchOrder = (db, orderNo) => {
     codeId: row[15] ?? null,
     code: row[16] || null,
     codeAccountEmail: row[17] || null,
-	    createdAt: row[18],
-	    updatedAt: row[19],
-	    paidAt: row[20] || null,
-	    redeemedAt: row[21] || null,
-	    inviteStatus: row[22] || null,
-	    redeemAccountEmail: row[23] || null,
-	    redeemUserCount: row[24] != null ? Number(row[24]) : null,
-	    redeemError: row[25] || null,
-	    refundedAt: row[26] || null,
-	    refundAmount: row[27] || null,
-	    refundMessage: row[28] || null,
-	    emailSentAt: row[29] || null,
-	    telegramSentAt: row[30] || null,
-	    userId: row[31] ?? null,
-	    inviteRewardToUserId: row[32] ?? null,
-	    inviteRewardPoints: row[33] != null ? Number(row[33]) : null,
-	    inviteRewardedAt: row[34] || null,
-	    buyerRewardPoints: row[35] != null ? Number(row[35]) : null,
-	    buyerRewardedAt: row[36] || null
-	  }
-	}
+    createdAt: row[18],
+    updatedAt: row[19],
+    paidAt: row[20] || null,
+    redeemedAt: row[21] || null,
+    inviteStatus: row[22] || null,
+    redeemAccountEmail: row[23] || null,
+    redeemUserCount: row[24] != null ? Number(row[24]) : null,
+    redeemError: row[25] || null,
+    refundedAt: row[26] || null,
+    refundAmount: row[27] || null,
+    refundMessage: row[28] || null,
+    emailSentAt: row[29] || null,
+    telegramSentAt: row[30] || null,
+    userId: row[31] ?? null,
+    inviteRewardToUserId: row[32] ?? null,
+    inviteRewardPoints: row[33] != null ? Number(row[33]) : null,
+    inviteRewardedAt: row[34] || null,
+    buyerRewardPoints: row[35] != null ? Number(row[35]) : null,
+    buyerRewardedAt: row[36] || null
+  }
+}
 
 const computeRefund = ({ amount, startAt, serviceDays }) => {
   const parsedAmount = parseMoney(amount)
@@ -965,7 +985,7 @@ const syncOrderStatusFromZpay = async (db, orderNo, { force = false } = {}) => {
   // 查询时优先仅用 out_trade_no（我方订单号），避免 trade_no 不一致时影响查询结果
   const query = await queryZpayOrder({ tradeNo: '', outTradeNo: orderNo })
   console.log(query);
-  
+
   try {
     persistZpayQueryResult(db, orderNo, query)
     saveDatabase()
@@ -1088,8 +1108,8 @@ const reserveDemotedCode = (db, { orderNo, email }) => {
 
 router.get('/meta', async (req, res) => {
   try {
-    const { plans, expireMinutes } = getPurchasePlans()
     const db = await getDatabase()
+    const { plans, expireMinutes } = getPurchasePlans(db)
     await withLocks(['purchase'], async () => {
       const released = cleanupExpiredOrders(db, { expireMinutes })
       if (released) {
@@ -1156,12 +1176,11 @@ router.post('/orders', async (req, res) => {
     return res.status(500).json({ error: '支付未配置，请联系管理员' })
   }
 
-  const purchasePlans = getPurchasePlans()
-  const purchasePlan = getPurchasePlan(orderType)
-  const orderNo = generateOrderNo()
-
   try {
     const db = await getDatabase()
+    const purchasePlans = getPurchasePlans(db)
+    const purchasePlan = getPurchasePlan(orderType, db)
+    const orderNo = generateOrderNo()
 
     const reservation = await withLocks(['purchase'], async () => {
       cleanupExpiredOrders(db, { expireMinutes: purchasePlans.expireMinutes })
@@ -1444,44 +1463,44 @@ const processZpayNotify = async (orderNo, payload) => {
 
 router.all('/notify', async (req, res) => {
   const payload = { ...(req.query || {}), ...(req.body || {}) }
-	const outTradeNo = String(payload.out_trade_no || '').trim()
-	const tradeNo = String(payload.trade_no || '').trim()
-	const orderNo = outTradeNo || String(payload.order_no || '').trim()
-	const ip = getClientIp(req)
-	const summary = summarizeZpayNotifyPayload(payload)
-	const ua = safeSnippet(req.headers['user-agent'] || '', 180)
-	const originalUrl = safeSnippet(req.originalUrl || '', 420)
-	const referer = safeSnippet(req.headers.referer || req.headers.referrer || '', 180)
+  const outTradeNo = String(payload.out_trade_no || '').trim()
+  const tradeNo = String(payload.trade_no || '').trim()
+  const orderNo = outTradeNo || String(payload.order_no || '').trim()
+  const ip = getClientIp(req)
+  const summary = summarizeZpayNotifyPayload(payload)
+  const ua = safeSnippet(req.headers['user-agent'] || '', 180)
+  const originalUrl = safeSnippet(req.originalUrl || '', 420)
+  const referer = safeSnippet(req.headers.referer || req.headers.referrer || '', 180)
 
-	console.info('[Purchase] notify received', {
-	  method: req.method,
-	  path: req.path,
-	  ip,
-	  orderNo: orderNo || summary.outTradeNo || '',
-	  tradeNo: tradeNo || summary.tradeNo || '',
-	  ua: ua || null,
-	  referer: referer || null,
-	  url: originalUrl || null,
-	  queryKeys: Object.keys(req.query || {}).length,
-	  bodyKeys: Object.keys(req.body || {}).length,
-	  payload: summary
-	})
+  console.info('[Purchase] notify received', {
+    method: req.method,
+    path: req.path,
+    ip,
+    orderNo: orderNo || summary.outTradeNo || '',
+    tradeNo: tradeNo || summary.tradeNo || '',
+    ua: ua || null,
+    referer: referer || null,
+    url: originalUrl || null,
+    queryKeys: Object.keys(req.query || {}).length,
+    bodyKeys: Object.keys(req.body || {}).length,
+    payload: summary
+  })
   // epay 要求返回纯字符串 "success"
   const replySuccess = () => res.set('Content-Type', 'text/plain; charset=utf-8').status(200).end('success')
   const replyFail = () => res.set('Content-Type', 'text/plain; charset=utf-8').status(200).end('fail')
 
-	  if (!orderNo && !tradeNo) {
-	    console.warn('[Purchase] notify missing orderNo', { method: req.method, ip, payload: summary })
-	    replySuccess()
-	    return
-	  }
+  if (!orderNo && !tradeNo) {
+    console.warn('[Purchase] notify missing orderNo', { method: req.method, ip, payload: summary })
+    replySuccess()
+    return
+  }
 
-	  const { pid, key } = await getZpayConfig()
-	  if (!pid || !key) {
-	    console.warn('[Purchase] notify missing config', { orderNo, method: req.method, ip, hasPid: Boolean(pid), hasKey: Boolean(key) })
-	    replyFail()
-	    return
-	  }
+  const { pid, key } = await getZpayConfig()
+  if (!pid || !key) {
+    console.warn('[Purchase] notify missing config', { orderNo, method: req.method, ip, hasPid: Boolean(pid), hasKey: Boolean(key) })
+    replyFail()
+    return
+  }
 
   const signature = String(payload.sign || '').trim().toLowerCase()
   const expected = buildZpaySign(payload, key).toLowerCase()
@@ -1560,10 +1579,10 @@ router.get('/orders/:orderNo', async (req, res) => {
 
     const syncParam = String(req.query?.sync || '').trim().toLowerCase()
     const forceSync = ['1', 'true', 'yes'].includes(syncParam)
-	    const fallbackDelayMs = Math.max(0, toInt(process.env.PURCHASE_ORDER_QUERY_FALLBACK_DELAY_MS, 60000))
-	    const createdAtMs = Date.parse(String(order.createdAt || ''))
-	    const orderAgeMs = Number.isFinite(createdAtMs) ? Date.now() - createdAtMs : 0
-	    const allowFallbackSync = !forceSync && fallbackDelayMs > 0 && orderAgeMs >= fallbackDelayMs
+    const fallbackDelayMs = Math.max(0, toInt(process.env.PURCHASE_ORDER_QUERY_FALLBACK_DELAY_MS, 60000))
+    const createdAtMs = Date.parse(String(order.createdAt || ''))
+    const orderAgeMs = Number.isFinite(createdAtMs) ? Date.now() - createdAtMs : 0
+    const allowFallbackSync = !forceSync && fallbackDelayMs > 0 && orderAgeMs >= fallbackDelayMs
 
     if ((order.status === 'created' || order.status === 'pending_payment') && (forceSync || allowFallbackSync)) {
       try {
@@ -1691,8 +1710,8 @@ router.get('/my/orders', authenticateToken, async (req, res) => {
     )
     const total = Number(countResult[0]?.values?.[0]?.[0] || 0)
 
-	    const result = db.exec(
-	      `
+    const result = db.exec(
+      `
 	        SELECT order_no, zpay_trade_no, email, product_name, amount, service_days, order_type, pay_type, status,
 	               created_at, paid_at, redeemed_at, invite_status, redeem_error,
 	               refunded_at, refund_amount, refund_message, email_sent_at, zpay_img
@@ -1701,34 +1720,34 @@ router.get('/my/orders', authenticateToken, async (req, res) => {
 	        ORDER BY created_at DESC
 	        LIMIT ? OFFSET ?
 	      `,
-	      [userId, pageSize, offset]
-	    )
+      [userId, pageSize, offset]
+    )
 
     const rows = result[0]?.values || []
-	    res.json({
-	      orders: rows.map(row => ({
-	        orderNo: row[0],
-	        tradeNo: row[1] || null,
-	        email: row[2],
-	        productName: row[3],
-	        amount: row[4],
-	        serviceDays: Number(row[5]) || 30,
-	        orderType: normalizeOrderType(row[6]),
-	        payType: row[7] || null,
-	        img: row[18] || null,
-	        status: row[8],
-	        createdAt: row[9],
-	        paidAt: row[10] || null,
-	        redeemedAt: row[11] || null,
-	        inviteStatus: row[12] || null,
-	        redeemError: row[13] || null,
-	        refundedAt: row[14] || null,
-	        refundAmount: row[15] || null,
-	        refundMessage: row[16] || null,
-	        emailSentAt: row[17] || null
-	      })),
-	      pagination: { page, pageSize, total }
-	    })
+    res.json({
+      orders: rows.map(row => ({
+        orderNo: row[0],
+        tradeNo: row[1] || null,
+        email: row[2],
+        productName: row[3],
+        amount: row[4],
+        serviceDays: Number(row[5]) || 30,
+        orderType: normalizeOrderType(row[6]),
+        payType: row[7] || null,
+        img: row[18] || null,
+        status: row[8],
+        createdAt: row[9],
+        paidAt: row[10] || null,
+        redeemedAt: row[11] || null,
+        inviteStatus: row[12] || null,
+        redeemError: row[13] || null,
+        refundedAt: row[14] || null,
+        refundAmount: row[15] || null,
+        refundMessage: row[16] || null,
+        emailSentAt: row[17] || null
+      })),
+      pagination: { page, pageSize, total }
+    })
   } catch (error) {
     console.error('[Purchase] my orders error:', error)
     res.status(500).json({ error: '查询失败，请稍后再试' })

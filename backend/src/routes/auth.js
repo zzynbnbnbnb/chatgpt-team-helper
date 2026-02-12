@@ -12,7 +12,7 @@ const router = express.Router()
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production'
 const JWT_ALGORITHM = 'HS256'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const INVITE_REGISTER_REWARD_POINTS = 2
+const INVITE_REGISTER_REWARD_POINTS = 1
 
 const normalizeEmail = (value) => String(value ?? '').trim().toLowerCase()
 
@@ -150,13 +150,16 @@ router.post('/register/send-code', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const email = normalizeEmail(req.body?.email)
+    const code = String(req.body?.code || '').trim()
     const password = String(req.body?.password || '')
     const inviteCode = String(req.body?.inviteCode || '').trim() || null
 
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ error: '邮箱格式不正确' })
     }
-    // 验证码功能已移除
+    if (!/^[0-9]{6}$/.test(code)) {
+      return res.status(400).json({ error: '验证码格式不正确' })
+    }
     if (!password || password.length < 6) {
       return res.status(400).json({ error: '密码至少需要 6 个字符' })
     }
@@ -173,7 +176,28 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: '邮箱已注册' })
     }
 
-    // 验证码验证已移除 - 直接注册
+    const codeResult = db.exec(
+      `
+        SELECT id, code_hash
+        FROM email_verification_codes
+        WHERE email = ? AND purpose = 'register'
+          AND consumed_at IS NULL
+          AND expires_at >= DATETIME('now', 'localtime')
+        ORDER BY created_at DESC
+        LIMIT 1
+      `,
+      [email]
+    )
+    console.log("[RegisterDebug] email:", email, "code:", code, "codeResult:", JSON.stringify(codeResult))
+    if (!codeResult[0]?.values?.length) {
+      return res.status(400).json({ error: '验证码无效或已过期' })
+    }
+
+    const [codeId, expectedHash] = codeResult[0].values[0]
+    console.log("[RegisterDebug] codeId:", codeId, "expectedHash:", expectedHash, "inputCode:", code, "inputHash:", sha256(code))
+    if (sha256(code) !== expectedHash) {
+      return res.status(400).json({ error: '验证码无效或已过期' })
+    }
 
     let inviterUserId = null
     if (inviteCode) {
@@ -188,10 +212,10 @@ router.post('/register', async (req, res) => {
     const rewardPoints = inviterUserId ? INVITE_REGISTER_REWARD_POINTS : 0
     db.run(
       `
-        INSERT INTO users (username, password, password_hash, email, invited_by_user_id, invite_enabled, points, created_at)
-        VALUES (?, ?, ?, ?, ?, 0, ?, DATETIME('now', 'localtime'))
+        INSERT INTO users (username, password, email, invited_by_user_id, invite_enabled, points, created_at)
+        VALUES (?, ?, ?, ?, 0, ?, DATETIME('now', 'localtime'))
       `,
-      [email, hashedPassword, hashedPassword, email, inviterUserId, rewardPoints]
+      [email, hashedPassword, email, inviterUserId, rewardPoints]
     )
 
     const userIdResult = db.exec('SELECT id FROM users WHERE email = ? LIMIT 1', [email])

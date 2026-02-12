@@ -1811,8 +1811,8 @@ router.get('/account-recovery/banned-accounts', async (req, res) => {
     const total = Number(countResult[0]?.values?.[0]?.[0] || 0)
     const offset = (page - 1) * pageSize
 
-	    const dataResult = db.exec(
-	      `
+    const dataResult = db.exec(
+      `
 	        WITH log_flags AS (
 	          SELECT
 	            original_code_id,
@@ -2262,14 +2262,14 @@ router.get('/account-recovery/banned-accounts/:accountId/redeems', async (req, r
         attempts,
         latest: row[8]
           ? {
-              id: Number(row[8]),
-              status: String(row[9] || ''),
-              errorMessage: row[10] ? String(row[10]) : null,
-              recoveryMode: row[11] ? String(row[11]) : null,
-              recoveryCode: row[12] ? String(row[12]) : null,
-              recoveryAccountEmail: row[13] ? String(row[13]) : null,
-              createdAt: row[14] ? String(row[14]) : null
-            }
+            id: Number(row[8]),
+            status: String(row[9] || ''),
+            errorMessage: row[10] ? String(row[10]) : null,
+            recoveryMode: row[11] ? String(row[11]) : null,
+            recoveryCode: row[12] ? String(row[12]) : null,
+            recoveryAccountEmail: row[13] ? String(row[13]) : null,
+            createdAt: row[14] ? String(row[14]) : null
+          }
           : null
       }
     })
@@ -2361,10 +2361,10 @@ router.post('/account-recovery/recover', async (req, res) => {
     const db = await getDatabase()
     const results = []
 
-	    for (const originalCodeId of originalCodeIds) {
-	      const outcome = await withLocks([`admin-account-recovery:${originalCodeId}`], async () => {
-	        const originalResult = db.exec(
-	          `
+    for (const originalCodeId of originalCodeIds) {
+      const outcome = await withLocks([`admin-account-recovery:${originalCodeId}`], async () => {
+        const originalResult = db.exec(
+          `
 	            SELECT
 	              rc.id,
               rc.code,
@@ -2427,24 +2427,24 @@ router.post('/account-recovery/recover', async (req, res) => {
               ) != 'no_warranty'
             LIMIT 1
           `,
-	          [originalCodeId, threshold, threshold, threshold, threshold, threshold]
-	        )
+          [originalCodeId, threshold, threshold, threshold, threshold, threshold]
+        )
 
-	        const row = originalResult[0]?.values?.[0]
-	        if (!row) {
-	          return { originalCodeId, outcome: 'invalid', message: '兑换码不存在 / 不在窗口期 / 非封号账号 / 无质保订单' }
-	        }
+        const row = originalResult[0]?.values?.[0]
+        if (!row) {
+          return { originalCodeId, outcome: 'invalid', message: '兑换码不存在 / 不在窗口期 / 非封号账号 / 无质保订单' }
+        }
 
         const redeemedBy = extractEmailFromRedeemedBy(row[3])
         if (!redeemedBy) {
           return { originalCodeId, outcome: 'invalid', message: '兑换记录缺少有效用户邮箱' }
         }
 
-	        const redeemedAt = row[2] ? String(row[2]) : null
-	        const originalAccountEmail = String(row[6] || row[4] || '')
+        const redeemedAt = row[2] ? String(row[2]) : null
+        const originalAccountEmail = String(row[6] || row[4] || '')
 
-	        const completedLogResult = db.exec(
-	          `
+        const completedLogResult = db.exec(
+          `
 	            SELECT recovery_account_email
 	            FROM account_recovery_logs
 	            WHERE original_code_id = ?
@@ -2452,31 +2452,31 @@ router.post('/account-recovery/recover', async (req, res) => {
 	            ORDER BY id DESC
 	            LIMIT 1
 	          `,
-	          [originalCodeId]
-	        )
-	        const completedLogRow = completedLogResult[0]?.values?.[0]
-	        const currentAccountEmail = completedLogRow?.[0]
-	          ? normalizeEmail(completedLogRow[0])
-	          : normalizeEmail(originalAccountEmail)
+          [originalCodeId]
+        )
+        const completedLogRow = completedLogResult[0]?.values?.[0]
+        const currentAccountEmail = completedLogRow?.[0]
+          ? normalizeEmail(completedLogRow[0])
+          : normalizeEmail(originalAccountEmail)
 
-	        if (currentAccountEmail) {
-	          const currentAccountResult = db.exec(
-	            `
+        if (currentAccountEmail) {
+          const currentAccountResult = db.exec(
+            `
 	              SELECT COALESCE(is_banned, 0) AS is_banned
 	              FROM gpt_accounts
 	              WHERE lower(email) = ?
 	              LIMIT 1
 	            `,
-	            [currentAccountEmail]
-	          )
-	          const currentAccountRow = currentAccountResult[0]?.values?.[0]
-	          if (currentAccountRow && Number(currentAccountRow[0] || 0) === 0) {
-	            return { originalCodeId, outcome: 'already_done', message: '当前账号仍可用，无需补录' }
-	          }
-	        }
+            [currentAccountEmail]
+          )
+          const currentAccountRow = currentAccountResult[0]?.values?.[0]
+          if (currentAccountRow && Number(currentAccountRow[0] || 0) === 0) {
+            return { originalCodeId, outcome: 'already_done', message: '当前账号仍可用，无需补录' }
+          }
+        }
 
-	      const recoveryCodeResult = db.exec(
-	        `
+        const recoveryCodeResult = db.exec(
+          `
 	          SELECT rc.id, rc.code, rc.channel, rc.account_email
 	          FROM redemption_codes rc
 	          JOIN gpt_accounts ga ON lower(ga.email) = lower(rc.account_email)
@@ -2589,6 +2589,150 @@ router.post('/account-recovery/recover', async (req, res) => {
   } catch (error) {
     console.error('Admin account recovery error:', error)
     return res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ======================== 商品配置管理 ========================
+
+router.get('/purchase-product-settings', async (req, res) => {
+  try {
+    const db = await getDatabase()
+    const keys = [
+      'purchase_product_name',
+      'purchase_price',
+      'purchase_service_days',
+      'purchase_no_warranty_product_name',
+      'purchase_no_warranty_price',
+      'purchase_no_warranty_service_days',
+      'purchase_anti_ban_product_name',
+      'purchase_anti_ban_price',
+      'purchase_anti_ban_service_days',
+    ]
+    const placeholders = keys.map(() => '?').join(', ')
+    const result = db.exec(
+      `SELECT config_key, config_value FROM system_config WHERE config_key IN (${placeholders})`,
+      keys
+    )
+    const configMap = {}
+    for (const row of result[0]?.values || []) {
+      configMap[row[0]] = row[1]
+    }
+
+    res.json({
+      warranty: {
+        productName: configMap['purchase_product_name'] || process.env.PURCHASE_PRODUCT_NAME || '通用渠道激活码',
+        price: configMap['purchase_price'] || process.env.PURCHASE_PRICE || '1.00',
+        serviceDays: Number(configMap['purchase_service_days'] || process.env.PURCHASE_SERVICE_DAYS || 30),
+      },
+      noWarranty: {
+        productName: configMap['purchase_no_warranty_product_name'] || process.env.PURCHASE_NO_WARRANTY_PRODUCT_NAME || '',
+        price: configMap['purchase_no_warranty_price'] || process.env.PURCHASE_NO_WARRANTY_PRICE || '5.00',
+        serviceDays: Number(configMap['purchase_no_warranty_service_days'] || process.env.PURCHASE_NO_WARRANTY_SERVICE_DAYS || 30),
+      },
+      antiBan: {
+        productName: configMap['purchase_anti_ban_product_name'] || process.env.PURCHASE_ANTI_BAN_PRODUCT_NAME || '',
+        price: configMap['purchase_anti_ban_price'] || process.env.PURCHASE_ANTI_BAN_PRICE || '10.00',
+        serviceDays: Number(configMap['purchase_anti_ban_service_days'] || process.env.PURCHASE_ANTI_BAN_SERVICE_DAYS || 30),
+      },
+    })
+  } catch (error) {
+    console.error('Get purchase-product-settings error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.put('/purchase-product-settings', async (req, res) => {
+  try {
+    const db = await getDatabase()
+    const { warranty, noWarranty, antiBan } = req.body || {}
+
+    // 质保商品
+    if (warranty) {
+      if (warranty.productName != null) upsertSystemConfigValue(db, 'purchase_product_name', String(warranty.productName).trim())
+      if (warranty.price != null) upsertSystemConfigValue(db, 'purchase_price', String(warranty.price).trim())
+      if (warranty.serviceDays != null) upsertSystemConfigValue(db, 'purchase_service_days', String(Math.max(1, Number(warranty.serviceDays) || 30)))
+    }
+    // 无质保商品
+    if (noWarranty) {
+      if (noWarranty.productName != null) upsertSystemConfigValue(db, 'purchase_no_warranty_product_name', String(noWarranty.productName).trim())
+      if (noWarranty.price != null) upsertSystemConfigValue(db, 'purchase_no_warranty_price', String(noWarranty.price).trim())
+      if (noWarranty.serviceDays != null) upsertSystemConfigValue(db, 'purchase_no_warranty_service_days', String(Math.max(1, Number(noWarranty.serviceDays) || 30)))
+    }
+    // 防封禁商品
+    if (antiBan) {
+      if (antiBan.productName != null) upsertSystemConfigValue(db, 'purchase_anti_ban_product_name', String(antiBan.productName).trim())
+      if (antiBan.price != null) upsertSystemConfigValue(db, 'purchase_anti_ban_price', String(antiBan.price).trim())
+      if (antiBan.serviceDays != null) upsertSystemConfigValue(db, 'purchase_anti_ban_service_days', String(Math.max(1, Number(antiBan.serviceDays) || 30)))
+    }
+
+    saveDatabase()
+    res.json({ message: '商品配置已更新' })
+  } catch (error) {
+    console.error('Update purchase-product-settings error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ======================== 积分规则管理 ========================
+
+router.get('/points-rules-settings', async (req, res) => {
+  try {
+    const db = await getDatabase()
+    const keys = [
+      'points_invite_register_reward',
+      'points_invite_unlock_cost',
+      'points_team_seat_cost',
+      'points_invite_order_reward',
+      'points_purchase_order_reward',
+    ]
+    const placeholders = keys.map(() => '?').join(', ')
+    const result = db.exec(
+      `SELECT config_key, config_value FROM system_config WHERE config_key IN (${placeholders})`,
+      keys
+    )
+    const configMap = {}
+    for (const row of result[0]?.values || []) {
+      configMap[row[0]] = row[1]
+    }
+
+    res.json({
+      inviteRegisterReward: Number(configMap['points_invite_register_reward'] ?? 1),
+      inviteUnlockCost: Number(configMap['points_invite_unlock_cost'] ?? 1),
+      teamSeatCost: Number(configMap['points_team_seat_cost'] ?? 15),
+      inviteOrderReward: Number(configMap['points_invite_order_reward'] ?? 5),
+      purchaseOrderReward: Number(configMap['points_purchase_order_reward'] ?? 3),
+    })
+  } catch (error) {
+    console.error('Get points-rules-settings error:', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.put('/points-rules-settings', async (req, res) => {
+  try {
+    const db = await getDatabase()
+    const body = req.body || {}
+
+    const fields = [
+      { key: 'points_invite_register_reward', value: body.inviteRegisterReward, min: 0 },
+      { key: 'points_invite_unlock_cost', value: body.inviteUnlockCost, min: 1 },
+      { key: 'points_team_seat_cost', value: body.teamSeatCost, min: 1 },
+      { key: 'points_invite_order_reward', value: body.inviteOrderReward, min: 0 },
+      { key: 'points_purchase_order_reward', value: body.purchaseOrderReward, min: 0 },
+    ]
+
+    for (const field of fields) {
+      if (field.value != null) {
+        const val = Math.max(field.min, Number(field.value) || 0)
+        upsertSystemConfigValue(db, field.key, String(val))
+      }
+    }
+
+    saveDatabase()
+    res.json({ message: '积分规则已更新' })
+  } catch (error) {
+    console.error('Update points-rules-settings error:', error)
+    res.status(500).json({ error: 'Internal server error' })
   }
 })
 

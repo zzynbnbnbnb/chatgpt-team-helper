@@ -164,7 +164,7 @@ router.get('/invite-summary', authenticateToken, async (req, res) => {
 })
 
 const TEAM_SEAT_COST_POINTS = Math.max(1, toInt(process.env.TEAM_SEAT_COST_POINTS, 15))
-const INVITE_UNLOCK_COST_POINTS = Math.max(1, toInt(process.env.INVITE_UNLOCK_COST_POINTS, 15))
+const INVITE_UNLOCK_COST_POINTS = Math.max(1, toInt(process.env.INVITE_UNLOCK_COST_POINTS, 1))
 
 const WITHDRAW_MAX_POINTS_PER_REQUEST = Math.max(0, toInt(process.env.WITHDRAW_MAX_POINTS_PER_REQUEST, 500))
 const WITHDRAW_DAILY_MAX_POINTS = Math.max(0, toInt(process.env.WITHDRAW_DAILY_MAX_POINTS, 500))
@@ -656,17 +656,17 @@ router.post('/points/withdraw', authenticateToken, async (req, res) => {
 
       const withdrawal = row
         ? {
-            id: row[0],
-            points: Number(row[1] || 0),
-            cashAmount: row[2] || null,
-            method: row[3],
-            payoutAccount: row[4],
-            status: row[5] || 'pending',
-            remark: row[6] || null,
-            createdAt: row[7],
-            updatedAt: row[8],
-            processedAt: row[9] || null,
-          }
+          id: row[0],
+          points: Number(row[1] || 0),
+          cashAmount: row[2] || null,
+          method: row[3],
+          payoutAccount: row[4],
+          status: row[5] || 'pending',
+          remark: row[6] || null,
+          createdAt: row[7],
+          updatedAt: row[8],
+          processedAt: row[9] || null,
+        }
         : null
 
       return { ok: true, points: pointsAfter, withdrawal }
