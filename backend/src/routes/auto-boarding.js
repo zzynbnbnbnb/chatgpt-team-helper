@@ -265,11 +265,11 @@ router.post('/', apiKeyAuth, async (req, res) => {
         removedUsers
       })
     } else {
-      // 创建新账号，默认人数设置为1而不是0
+      // 创建新账号，默认人数设置为1而不是0，invite_count 显式初始化为 0
       db.run(
         `INSERT INTO gpt_accounts
-         (email, token, refresh_token, user_count, chatgpt_account_id, oai_device_id, expire_at, is_open, is_demoted, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, DATETIME('now', 'localtime'), DATETIME('now', 'localtime'))`,
+         (email, token, refresh_token, user_count, invite_count, chatgpt_account_id, oai_device_id, expire_at, is_open, is_demoted, created_at, updated_at)
+         VALUES (?, ?, ?, ?, 0, ?, ?, ?, 1, ?, DATETIME('now', 'localtime'), DATETIME('now', 'localtime'))`,
         [normalizedEmail, token, refreshToken || null, 1, chatgptAccountId || null, oaiDeviceId || null, expireAt, shouldUpdateIsDemoted ? isDemotedValue : 0]
       )
 
@@ -314,13 +314,13 @@ router.post('/', apiKeyAuth, async (req, res) => {
         // 尝试生成唯一的兑换码（最多重试4次）
         while (attempts < 4 && !success) {
           try {
-	            db.run(
-	              `INSERT INTO redemption_codes (code, account_email, created_at, updated_at) VALUES (?, ?, DATETIME('now', 'localtime'), DATETIME('now', 'localtime'))`,
-	              [code, normalizedEmail]
-	            )
-	            generatedCodes.push(code)
-	            success = true
-	          } catch (err) {
+            db.run(
+              `INSERT INTO redemption_codes (code, account_email, created_at, updated_at) VALUES (?, ?, DATETIME('now', 'localtime'), DATETIME('now', 'localtime'))`,
+              [code, normalizedEmail]
+            )
+            generatedCodes.push(code)
+            success = true
+          } catch (err) {
             if (err.message.includes('UNIQUE')) {
               // 如果重复，重新生成
               code = generateRedemptionCode()

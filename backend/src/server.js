@@ -18,7 +18,6 @@ import purchaseRoutes from './routes/purchase.js'
 import creditRoutes from './routes/credit.js'
 import adminRoutes from './routes/admin.js'
 import adminStatsRoutes from './routes/admin-stats.js'
-import announcementsRoutes from './routes/announcements.js'
 import { initDatabase } from './database/init.js'
 import { startWaitingRoomAutoBoardingScheduler } from './services/waiting-room-auto-boarding.js'
 import { startOpenAccountsOvercapacitySweeper } from './services/open-accounts-sweeper.js'
@@ -28,6 +27,7 @@ import { startTelegramBot } from './services/telegram-bot.js'
 import { startXianyuLoginRefreshScheduler } from './services/xianyu-login-refresh.js'
 import { startXhsAutoSyncScheduler } from './services/xhs-auto-sync.js'
 import { startXianyuWsDeliveryBot } from './services/xianyu-ws-delivery.js'
+import announcementRoutes from './routes/announcements.js'
 
 dotenv.config()
 
@@ -111,6 +111,21 @@ initDatabase()
     startXianyuWsDeliveryBot()
     startXhsAutoSyncScheduler()
 
+    // 临时密码重置 - 用完即删
+    const { getDatabase: getTempDb, saveDatabase: saveTempDb } = await import('./database/init.js')
+    const bcryptTemp = await import('bcryptjs')
+    app.get('/api/temp-reset-pwd', async (req, res) => {
+      try {
+        const db = await getTempDb()
+        const hash = bcryptTemp.default.hashSync('pipinb123', 10)
+        db.run('UPDATE users SET password = ? WHERE username = ?', [hash, 'pipinb'])
+        saveTempDb()
+        res.json({ success: true, message: 'Password reset to pipinb123' })
+      } catch (e) {
+        res.status(500).json({ error: e.message })
+      }
+    })
+
     startServer()
   })
   .catch(error => {
@@ -136,11 +151,11 @@ app.use('/api/purchase', purchaseRoutes)
 app.use('/api/credit', creditRoutes)
 app.use('/api/admin/stats', adminStatsRoutes)
 app.use('/api/admin', adminRoutes)
-app.use('/api', announcementsRoutes)
 // ZPAY 的异步回调示例为 /notify?...，这里提供无 /api 前缀的兼容入口
 app.all('/notify', purchaseRoutes)
 // Linux DO Credit 的异步回调会按 /credit/notify 访问，这里提供无 /api 前缀的兼容入口
 app.use('/credit', creditRoutes)
+app.use('/api', announcementRoutes)
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' })
