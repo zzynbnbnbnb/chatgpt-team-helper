@@ -116,7 +116,7 @@ router.get('/announcements', async (req, res) => {
 const OLD_SYSTEM_URL = process.env.OLD_SYSTEM_URL || 'http://127.0.0.1:3000'
 const INTERNAL_API_KEY = process.env.OLD_SYSTEM_API_KEY
     || process.env.INVITE_SERVICE_SECRET
-    || 'znQq35u1xhEZhcKp7D8vW4RcFgvyrhll'
+    || '86f0a0c8de45ca9183cb055477603feece4be5d187bd3296e985697ac2964676'
 
 // 管理员：获取老系统公告
 router.get('/admin/old-system-announcement', authenticateToken, async (req, res) => {
